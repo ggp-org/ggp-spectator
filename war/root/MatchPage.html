@@ -1,0 +1,54 @@
+<html>
+  <head>
+    <title>GGP Spectator (Demo)</title>
+    <link rel="stylesheet" type="text/css" href="http://fonts.googleapis.com/css?family=Droid+Sans:bold">
+    <style>
+      body {
+        font-family: 'Droid Sans', bold;
+        
+        background: #111;
+        
+		filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#111', endColorstr='#333');
+		background: -webkit-gradient(linear, left top, left bottom, from(#111), to(#333));
+		background: -moz-linear-gradient(top,  #111,  #333);
+      }
+      h1 {
+        color: #F1F1F1;
+        font-size: 48px;
+        text-shadow: #AAAAAA 0px 0px 25px;
+        margin: 5px;
+      }
+      h2 {
+        color: #F1F1F1;
+        font-size: 24px;
+        text-shadow: #AAAAAA 0px 0px 15px;
+        margin: 5px;
+      }
+    </style>
+    <script type='text/javascript' src='/_ah/channel/jsapi'></script>
+    <script src="http://code.jquery.com/jquery-1.4.4.js"></script>
+    <link rel="alternate" type="application/atom+xml" href="feed.atom" title="ATOM feed"> 
+  </head>
+  <body onload="spectatorView.render()" onresize="spectatorView.render()"> 
+    <script type='text/javascript' src='http://ggp-spectator.appspot.com/static/scripts/common/compulog.js'></script>
+    <script type='text/javascript' src='http://ggp-spectator.appspot.com/static/scripts/common/AJAXSLT.js'></script>
+    <script type='text/javascript' src='http://ggp-spectator.appspot.com/static/scripts/common/ResourceLoader.js'></script>
+    <script type='text/javascript' src='http://ggp-spectator.appspot.com/static/scripts/common/StateRenderer.js'></script>
+    <script type='text/javascript' src='http://ggp-spectator.appspot.com/static/scripts/common/StateMachine.js'></script>
+    <script type='text/javascript' src='http://ggp-spectator.appspot.com/static/scripts/common/SymbolList.js'></script>
+    <script type='text/javascript' src='http://ggp-spectator.appspot.com/static/scripts/common/SpectatorView.js'></script>
+    <script type='text/javascript' src='channel.js'></script>
+    
+    <center>
+    <div id='top_div' style='height: 100px'>
+      <h1>GGP Spectator Server</h1>
+      <h2><div id='name_div'></div></h2>    
+    </div>
+    <div id='spectator_div'></div>
+    </center>
+
+    <script type='text/javascript' language='javascript'>
+      spectatorView = SpectatorView.construct('.', document.getElementById('spectator_div'));
+    </script>    
+  </body>
+</html>  
