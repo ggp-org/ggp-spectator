@@ -47,10 +47,6 @@ public class GGP_SpectatorServlet extends HttpServlet {
         if(theURL.endsWith("/viz2.html")) {
             writeStaticPage(resp, "MatchPage2.html");
             return;
-        }        
-        if(theURL.endsWith("/clear_listing")) {
-            MatchData.clearMatches();
-            return;
         }
         if(theURL.length() == 0) {
             Set<MatchData> theMatches = MatchData.loadMatches();
