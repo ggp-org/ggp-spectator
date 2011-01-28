@@ -23,13 +23,14 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.setHeader("Access-Control-Allow-Age", "86400");            
         
         boolean showFeedView = false;
-        String theURL = req.getRequestURL().toString();
-        if(!theURL.startsWith("http://ggp-spectator.appspot.com/matches/")) {
+        String theURL = req.getRequestURI();
+        if(!theURL.startsWith("/matches/")) {
             resp.setContentType("text/plain");
             resp.getWriter().println("Nothing to see here... yet!");
             return;
         }
-        theURL = theURL.substring("http://ggp-spectator.appspot.com/matches/".length());
+        
+        theURL = theURL.substring("/matches/".length());
         if(theURL.endsWith("/")) theURL = theURL.substring(0, theURL.length()-1);
         if(theURL.endsWith("/feed.atom")) {
             showFeedView = true;
@@ -108,15 +109,16 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.setHeader("Access-Control-Allow-Headers", "*");
         resp.setHeader("Access-Control-Allow-Age", "86400");            
         
-        String theURL = req.getRequestURL().toString();
-        if(!theURL.equals("http://ggp-spectator.appspot.com/"))
+        String theURL = req.getRequestURI();
+        if(!theURL.equals("/"))
             return;
         
         String theAuthToken = req.getParameter("AUTH");
         String theMatchJSON = req.getParameter("DATA");
         
         String theRepository = MatchData.getRepositoryServerFromJSON(theMatchJSON);
-        if (!theRepository.equals("ggp-repository.appspot.com")) {
+        if (!theRepository.equals("ggp-repository.appspot.com") &&
+            !theRepository.equals("games.ggp.org")) {
             // TODO: Make this more permissive. What's the best way to do this
             // while still providing security for viewers?
             throw new IOException("Repository not whitelisted: " + theRepository);
@@ -140,7 +142,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
         
         // Ping the channel clients and the PuSH hub.
         theMatch.pingChannelClients();
-        PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://ggp-spectator.appspot.com/matches/" + theMatch.getMatchKey() + "/feed.atom");        
+        PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");        
     }
     
     public void doOptions(HttpServletRequest req, HttpServletResponse resp) throws IOException {  

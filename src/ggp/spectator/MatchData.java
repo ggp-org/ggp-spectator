@@ -75,10 +75,10 @@ public class MatchData {
     public static String getAtomEntry(String theJSON, Date lastUpdated) {
         String key = MatchData.getKeyFromJSON(theJSON);
         StringBuilder b = new StringBuilder();
-        String atomStateId = "tag:ggp-spectator.appspot.com,2010-01-01:/matches/" + key + "/" + Math.abs(theJSON.hashCode());
+        String atomStateId = "tag:matches.ggp.org,2010-01-01:/matches/" + key + "/" + Math.abs(theJSON.hashCode());
         b.append("   <entry> \n");
         b.append("      <title>State Transition at " + getAtomDateString(lastUpdated) + "</title> \n");
-        b.append("      <link href=\"http://ggp-spectator.appspot.com/matches/" + key + "/\"/> \n");
+        b.append("      <link href=\"http://matches.ggp.org/matches/" + key + "/\"/> \n");
         b.append("      <id>" + atomStateId + "</id> \n");
         b.append("      <updated>" + getAtomDateString(lastUpdated) + "</updated> \n");
         b.append("      <summary>State changed in underlying match.</summary> \n");
@@ -110,14 +110,14 @@ public class MatchData {
 
         String key = MatchData.getKeyFromJSON(theMatchJSON.getValue());
         String atomTitle = "GGP Match [" + key + "]";        
-        String atomId = "tag:ggp-spectator.appspot.com,2010-01-01:/matches/" + key + "/";        
+        String atomId = "tag:matches.ggp.org,2010-01-01:/matches/" + key + "/";        
         
         b.append("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?> \n");
         b.append("<feed xmlns=\"http://www.w3.org/2005/Atom\"> \n");
         b.append("   <title>" + atomTitle + "</title> \n");
-        //b.append("   <link href=\"http://pubsubhubbub.appspot.com/\" rel=\"hub\"/> \n");
-        b.append("   <link href=\"http://ggp-spectator.appspot.com/matches/" + key + "/\"/> \n");
-        b.append("   <link rel=\"self\" href=\"http://ggp-spectator.appspot.com/matches/" + key + "/feed.atom\"/> \n");
+        b.append("   <link href=\"http://pubsubhubbub.appspot.com/\" rel=\"hub\"/> \n");
+        b.append("   <link href=\"http://matches.ggp.org/matches/" + key + "/\"/> \n");
+        b.append("   <link rel=\"self\" href=\"http://matches.ggp.org/matches/" + key + "/feed.atom\"/> \n");
         b.append("   <updated>" + getAtomDateString(lastUpdated) + "</updated> \n");
         b.append("   <author><name>GGP Spectator Server</name></author> \n");
         b.append("   <id>" + atomId + "</id> \n");
