@@ -14,6 +14,5 @@
 
     <static-files>
         <include path="favicon.ico" />
-        <include path="static/**" />
     </static-files>  	
 </appengine-web-app>
