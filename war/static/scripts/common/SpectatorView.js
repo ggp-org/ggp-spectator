@@ -9,7 +9,7 @@ if (typeof Object.create !== 'function') {
 // This allows you to construct a SpectatorView on a web page.
 // This requires the following includes in the HEAD of the page:
 //   * Channel API: "/_ah/channel/jsapi"
-//   * jQuery Library: "http://code.jquery.com/jquery-1.4.4.js"
+//   * jQuery Library: "//ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"
 //
 // This also requires the acquisition of a channel token, which
 // is stored in the global variable "theChannelToken". This is the
