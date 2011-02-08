@@ -197,8 +197,8 @@ public class MatchData {
             String theKey = theJSON.getString("matchId");
             theKey += "." + theJSON.getLong("startTime");
             theKey += "." + theJSON.getString("randomToken");
-            if (theJSON.has("randomPK")) {
-                theKey += "." + theJSON.getString("randomPK");
+            if (theJSON.has("matchHostPK")) {
+                theKey += "." + theJSON.getString("matchHostPK");
             }
             return theKey;
         } catch(JSONException e) {
