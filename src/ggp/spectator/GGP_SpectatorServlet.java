@@ -25,8 +25,8 @@ public class GGP_SpectatorServlet extends HttpServlet {
         boolean showFeedView = false;
         String theURL = req.getRequestURI();
         if(!theURL.startsWith("/matches/")) {
-            resp.setContentType("text/plain");
-            resp.getWriter().println("Nothing to see here... yet!");
+            // Add a proper splash page, etc.
+            resp.setStatus(404);
             return;
         }
         
@@ -58,11 +58,15 @@ public class GGP_SpectatorServlet extends HttpServlet {
         }
 
         MatchData theMatch = MatchData.loadMatchData(theURL);
-        if (showFeedView) {
-            resp.setContentType("application/atom+xml");
-            resp.getWriter().println(theMatch.getAtomFeed());
+        if (theMatch == null) {
+            resp.setStatus(404);
         } else {
-            resp.getWriter().println(theMatch.getMatchJSON());
+            if (showFeedView) {
+                resp.setContentType("application/atom+xml");
+                resp.getWriter().println(theMatch.getAtomFeed());
+            } else {
+                resp.getWriter().println(theMatch.getMatchJSON());
+            }
         }
     }
 
