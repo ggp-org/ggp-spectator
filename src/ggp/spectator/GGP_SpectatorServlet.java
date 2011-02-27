@@ -87,7 +87,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
     
     public void writeChannelLibrary(HttpServletResponse resp, String theKey) throws IOException {        
         MatchData theMatch = null;
-        PersistenceManager pm = PMF.get().getPersistenceManager();
+        PersistenceManager pm = Persistence.getPersistenceManager();
         try {
             theMatch = pm.detachCopy(pm.getObjectById(MatchData.class, theKey));
             
@@ -129,7 +129,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
         }
         
         MatchData theMatch = null;
-        PersistenceManager pm = PMF.get().getPersistenceManager();
+        PersistenceManager pm = Persistence.getPersistenceManager();
         try {
             theMatch = pm.detachCopy(pm.getObjectById(MatchData.class, MatchData.getKeyFromJSON(theMatchJSON)));
             theMatch.setMatchJSON(theMatchJSON);

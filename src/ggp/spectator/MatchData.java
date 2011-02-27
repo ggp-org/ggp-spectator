@@ -7,17 +7,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.TimeZone;
 
-import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.annotations.*;
-
-import org.datanucleus.store.query.AbstractQueryResult;
 
 import com.google.appengine.api.channel.ChannelMessage;
 import com.google.appengine.api.channel.ChannelService;
@@ -47,7 +43,7 @@ public class MatchData {
         this.theClientIDs = new HashSet<String>();
 
         if (matchKey.length() > 0) {
-            PersistenceManager pm = PMF.get().getPersistenceManager();
+            PersistenceManager pm = Persistence.getPersistenceManager();
             pm.makePersistent(this);
             pm.close();
         }
@@ -132,47 +128,15 @@ public class MatchData {
         
     /* Static accessor methods */
     public static Set<MatchData> loadMatches() throws IOException {
-        Set<MatchData> theMatches = new HashSet<MatchData>();
-        PersistenceManager pm = PMF.get().getPersistenceManager();
-        try {
-            Iterator<?> sqr = ((AbstractQueryResult) pm.newQuery(MatchData.class).execute()).iterator();
-            while (sqr.hasNext()) {
-                theMatches.add((MatchData)sqr.next());
-            }            
-        } catch(JDOObjectNotFoundException e) {
-            ;
-        } finally {
-            pm.close();
-        }
-        return theMatches;
+        return Persistence.loadAll(MatchData.class);
     }
     
     public static MatchData loadMatchData(String matchKey) throws IOException {
-        MatchData theMatch = null;
-        PersistenceManager pm = PMF.get().getPersistenceManager();
-        try {
-            theMatch = pm.detachCopy(pm.getObjectById(MatchData.class, matchKey));
-        } catch(JDOObjectNotFoundException e) {
-            ;
-        } finally {
-            pm.close();
-        }
-        return theMatch;
+        return Persistence.loadSpecific(matchKey, MatchData.class);
     }
     
     public static void clearMatches() throws IOException {
-        Set<MatchData> theMatches = loadMatches();
-
-        for (MatchData m : theMatches) {
-            PersistenceManager pm = PMF.get().getPersistenceManager();
-            try {
-                pm.deletePersistent(pm.getObjectById(MatchData.class, m.getMatchKey()));
-            } catch(JDOObjectNotFoundException e) {
-                ;
-            } finally {
-                pm.close();
-            }
-        }
+        Persistence.clearAll(MatchData.class);
     }
 
     public static String renderArrayAsJSON(List<?> theList, boolean useQuotes) {
