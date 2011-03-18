@@ -36,9 +36,19 @@ public class GGP_SpectatorServlet extends HttpServlet {
             showFeedView = true;
             theURL = theURL.substring(0, theURL.length()-10);            
         }
+        if(theURL.equals("channel.js")) {
+            writeChannelToken(resp);
+            return;            
+        }
         if(theURL.endsWith("/channel.js")) {
             theURL = theURL.substring(0, theURL.length() - 11);
-            writeChannelLibrary(resp, theURL);
+            if (theURL.contains("/clientId=")) {
+                String theID = theURL.substring(theURL.indexOf("/clientId=")+10);
+                theURL = theURL.substring(0, theURL.indexOf("/clientId="));
+                registerChannelForMatch(resp, theURL, theID);
+            } else {
+                resp.setStatus(404);
+            }
             return;
         }
         if(theURL.endsWith("/viz.html")) {
@@ -85,20 +95,21 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.getWriter().println(response.toString());
     }
     
-    public void writeChannelLibrary(HttpServletResponse resp, String theKey) throws IOException {        
+    public void writeChannelToken(HttpServletResponse resp) throws IOException {        
+        String theClientID = MatchData.getRandomString(32);                
+        String theToken = ChannelServiceFactory.getChannelService().createChannel(theClientID);
+        resp.getWriter().println("theChannelID = \"" + theClientID + "\";\n");
+        resp.getWriter().println("theChannelToken = \"" + theToken + "\";\n");
+    }    
+    
+    public void registerChannelForMatch(HttpServletResponse resp, String theKey, String theClientID) throws IOException {
         MatchData theMatch = null;
         PersistenceManager pm = Persistence.getPersistenceManager();
         try {
-            theMatch = pm.detachCopy(pm.getObjectById(MatchData.class, theKey));
-            
-            String theClientID = MatchData.getRandomString(32);                
-            String theToken = ChannelServiceFactory.getChannelService().createChannel(theClientID);
+            theMatch = pm.detachCopy(pm.getObjectById(MatchData.class, theKey));            
             theMatch.addClientID(theClientID);
-            
-            resp.getWriter().println("theChannelID = \"" + theClientID + "\";\n");
-            resp.getWriter().println("theChannelToken = \"" + theToken + "\";\n");
-            
             pm.makePersistent(theMatch);
+            resp.getWriter().write("Registered for [" + theKey + "] as [" + theClientID + "].");
         } catch(JDOObjectNotFoundException e) {
             ;
         } finally {
