@@ -54,6 +54,10 @@ public class MatchData {
         theClientIDs.add(clientID);
     }
     
+    public int numClientIDs() {
+        return theClientIDs.size();
+    }
+    
     public void pingChannelClients() {
         if (theClientIDs == null) return;        
         ChannelService chanserv = ChannelServiceFactory.getChannelService();

@@ -47,10 +47,18 @@ public class SimpleMapper extends AppEngineMapper<Key, Entity, NullWritable, Nul
   @Override
   public void map(Key key, Entity value, Context context) {
     log.warning("Mapping key: " + key);
-    
+
     try {
         String theJSON = ((Text)value.getProperty("theMatchJSON")).getValue();
         JSONObject theMatch = new JSONObject(theJSON);
+
+        int nClientIDs = 0;
+        try {
+            MatchData m = MatchData.loadMatchData(MatchData.getKeyFromJSON(theJSON));
+            nClientIDs = m.numClientIDs();
+        } catch (Exception q) {
+            context.getCounter("clientIDs", "Unparseable").increment(1);
+        }
         
         recordWhetherJSONHas(context, theMatch, "matchId");
         recordWhetherJSONHas(context, theMatch, "startTime");
@@ -78,11 +86,14 @@ public class SimpleMapper extends AppEngineMapper<Key, Entity, NullWritable, Nul
             boolean isCompleted = theMatch.getBoolean("isCompleted");
             if (isCompleted) {
                 context.getCounter("isCompleted", "Yes").increment(1);
+                context.getCounter("clientIDs", "completed").increment(nClientIDs);
             } else {
                 context.getCounter("isCompleted", "No").increment(1);
+                context.getCounter("clientIDs", "ongoing").increment(nClientIDs);
             }
         } catch (Exception e2) {
             context.getCounter("isCompleted", "Unknown").increment(1);
+            context.getCounter("clientIDs", "Unknown").increment(nClientIDs);
         }
         
         context.getCounter("Overall", "Readable").increment(1);
