@@ -142,22 +142,6 @@ public class MatchData {
     public static void clearMatches() throws IOException {
         Persistence.clearAll(MatchData.class);
     }
-
-    public static String renderArrayAsJSON(List<?> theList, boolean useQuotes) {
-        String s = "[";
-        for (int i = 0; i < theList.size(); i++) {
-            Object o = theList.get(i);
-            if (o instanceof Text) o = ((Text)o).getValue();
-            
-            if (useQuotes) s += "\"";
-            s += o.toString();
-            if (useQuotes) s += "\"";
-            
-            if (i < theList.size() - 1)
-                s += ",";
-        }
-        return s + "]";        
-    }
     
     public static String getKeyFromJSON(String theMatchJSON) {
         try {

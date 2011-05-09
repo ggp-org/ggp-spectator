@@ -3,9 +3,6 @@ package ggp.spectator;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
@@ -57,17 +54,6 @@ public class GGP_SpectatorServlet extends HttpServlet {
             writeStaticPage(resp, "MatchPage.html");
             return;
         }
-        if(theURL.endsWith("/viz2.html")) {
-            writeStaticPage(resp, "MatchPage2.html");
-            return;
-        }
-        if(theURL.length() == 0) {
-            Set<MatchData> theMatches = MatchData.loadMatches();
-            List<String> theMatchKeys = new ArrayList<String>();
-            for(MatchData m : theMatches) theMatchKeys.add(m.getMatchKey());
-            resp.getWriter().println(MatchData.renderArrayAsJSON(theMatchKeys, true));
-            return;
-        }
 
         MatchData theMatch = MatchData.loadMatchData(theURL);
         if (theMatch == null) {
@@ -98,7 +84,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
     }
     
     public void writeChannelToken(HttpServletResponse resp) throws IOException {        
-        String theClientID = MatchData.getRandomString(32);                
+        String theClientID = MatchData.getRandomString(32);
         String theToken = ChannelServiceFactory.getChannelService().createChannel(theClientID);
         resp.getWriter().println("theChannelID = \"" + theClientID + "\";\n");
         resp.getWriter().println("theChannelToken = \"" + theToken + "\";\n");
@@ -108,7 +94,14 @@ public class GGP_SpectatorServlet extends HttpServlet {
         MatchData theMatch = null;
         PersistenceManager pm = Persistence.getPersistenceManager();
         try {
-            theMatch = pm.detachCopy(pm.getObjectById(MatchData.class, theKey));            
+            theMatch = pm.detachCopy(pm.getObjectById(MatchData.class, theKey));
+            try {
+                if (new JSONObject(theMatch.getMatchJSON()).getBoolean("isCompleted")) {
+                    resp.getWriter().write("Match [" + theKey + "] already completed; no need to register.");
+                    throw new JDOObjectNotFoundException();
+                }
+            } catch (JSONException e2) {
+            }
             theMatch.addClientID(theClientID);
             pm.makePersistent(theMatch);
             resp.getWriter().write("Registered for [" + theKey + "] as [" + theClientID + "].");
