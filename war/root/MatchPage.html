@@ -56,7 +56,16 @@
     </center>
 
     <script type='text/javascript' language='javascript'>
-      spectatorView = SpectatorView.construct('.', document.getElementById('spectator_div'));
+      var spectator_callbacks = {
+        "info": function(info_response) {
+          document.getElementById('name_div').innerHTML = 'Showing match: ' + info_response.matchId;
+        },
+        "done": function() {
+          document.getElementById('name_div').innerHTML += ' ... GAME OVER';
+        }
+      };
+    
+      spectatorView = SpectatorView.construct('.', document.getElementById('spectator_div'), spectator_callbacks);
     </script>    
   </body>
 </html>  
