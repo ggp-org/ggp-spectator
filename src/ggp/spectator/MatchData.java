@@ -1,9 +1,14 @@
 package ggp.spectator;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Formatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,7 +37,7 @@ public class MatchData {
     @Persistent private Set<String> theClientIDs;
 
     public MatchData(JSONObject theMatchJSON, String authToken) throws IOException {
-        this.matchKey = getKeyFromJSON(theMatchJSON);
+        this.matchKey = getNewKeyForJSON(theMatchJSON);
         this.theMatchJSON = new Text(theMatchJSON.toString());
         this.lastUpdated = new Date();        
         this.theAuthToken = authToken;
@@ -133,23 +138,77 @@ public class MatchData {
     /* Static accessor methods */
     public static MatchData loadMatchData(String matchKey) throws IOException {
         return Persistence.loadSpecific(matchKey, MatchData.class);
+    }    
+    
+    private static String getNewKeyForJSON(JSONObject theJSON) throws IOException {
+        String theKey;
+        int nAttempt = -1;
+        do {
+            nAttempt++;
+            theKey = computeKeyAttempt(theJSON, nAttempt);
+        } while (theKey.length() > 0 && loadMatchData(theKey) != null);
+        return theKey;
     }
 
-    public static String getKeyFromJSON(JSONObject theJSON) {
+    public static MatchData loadExistingMatchFromJSON(PersistenceManager pm, JSONObject theJSON) throws JDOObjectNotFoundException {
+        int nAttempt = -1;
+        while(true) {
+            nAttempt++;
+            String theKey = computeKeyAttempt(theJSON, nAttempt);
+            if (theKey.length() == 0)
+                throw new JDOObjectNotFoundException();
+
+            MatchData m = (MatchData)pm.detachCopy(pm.getObjectById(MatchData.class, theKey));     
+            try {
+                JSONObject theOldJSON = m.getMatchJSON();
+                if (!theOldJSON.getString("matchId").equals(theJSON.getString("matchId"))) continue;
+                if (theOldJSON.getLong("startTime") != theJSON.getLong("startTime")) continue;
+                if (!theOldJSON.getString("randomToken").equals(theJSON.getString("randomToken"))) continue;
+                if (theOldJSON.has("matchHostPK") || theJSON.has("matchHostPK")) {
+                    if (!theOldJSON.getString("matchHostPK").equals(theJSON.getString("matchHostPK")))
+                        continue;
+                }
+                return m;
+            } catch (JSONException e) {
+                ;
+            }            
+        }
+    }
+
+    private static String computeKeyAttempt(JSONObject theJSON, int nKeyAttempt) {
         try {
-            String theKey = theJSON.getString("matchId");
+            String theKey = computeHash(theJSON.getString("matchId"));
             theKey += "." + theJSON.getLong("startTime");
-            theKey += "." + theJSON.getString("randomToken");
+            theKey += "." + computeHash(theJSON.getString("randomToken"));
             if (theJSON.has("matchHostPK")) {
-                theKey += "." + theJSON.getString("matchHostPK");
+                theKey += "." + computeHash(theJSON.getString("matchHostPK"));
             }
-            return theKey;
+            theKey += "-" + nKeyAttempt;
+            return computeHash(theKey);
         } catch(JSONException e) {
             return "";
         }
     }
 
-    public static MatchData loadFromJSON(PersistenceManager pm, JSONObject theMatchJSON) throws JDOObjectNotFoundException {
-        return pm.detachCopy(pm.getObjectById(MatchData.class, MatchData.getKeyFromJSON(theMatchJSON)));
+    // Computes the SHA1 hash of a given input string, and represents
+    // that hash as a hexadecimal string.
+    private static String computeHash(String theData) {
+        try {
+            MessageDigest SHA1 = MessageDigest.getInstance("SHA1");
+    
+            DigestInputStream theDigestStream = new DigestInputStream(
+                    new BufferedInputStream(new ByteArrayInputStream(
+                            theData.getBytes("UTF-8"))), SHA1);
+            while (theDigestStream.read() != -1);
+            byte[] theHash = SHA1.digest();
+    
+            Formatter hexFormat = new Formatter();
+            for (byte x : theHash) {
+                hexFormat.format("%02x", x);
+            }
+            return hexFormat.toString();
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

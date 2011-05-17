@@ -113,11 +113,11 @@ public class GGP_SpectatorServlet extends HttpServlet {
         } catch (JSONException e) {
             throw new IOException(e);
         }
-            
+
         MatchData theMatch = null;
         PersistenceManager pm = Persistence.getPersistenceManager();
         try {
-            theMatch = MatchData.loadFromJSON(pm, theMatchJSON);
+            theMatch = MatchData.loadExistingMatchFromJSON(pm, theMatchJSON);
             if (!theMatch.getAuthToken().equals(theAuthToken)) {
                 throw new IOException("Unauthorized auth token used to update match.");
             }
@@ -261,7 +261,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
         try {
             theMatch = pm.detachCopy(pm.getObjectById(MatchData.class, theKey));
             try {
-                if (new JSONObject(theMatch.getMatchJSON()).getBoolean("isCompleted")) {
+                if (theMatch.getMatchJSON().getBoolean("isCompleted")) {
                     resp.getWriter().write("Match [" + theKey + "] already completed; no need to register.");
                     throw new JDOObjectNotFoundException();
                 }
