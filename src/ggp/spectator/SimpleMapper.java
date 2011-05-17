@@ -54,7 +54,7 @@ public class SimpleMapper extends AppEngineMapper<Key, Entity, NullWritable, Nul
 
         int nClientIDs = 0;
         try {
-            MatchData m = MatchData.loadMatchData(MatchData.getKeyFromJSON(theJSON));
+            MatchData m = MatchData.loadMatchData(MatchData.getKeyFromJSON(theMatch));
             nClientIDs = m.numClientIDs();
         } catch (Exception q) {
             context.getCounter("clientIDs", "Unparseable").increment(1);
