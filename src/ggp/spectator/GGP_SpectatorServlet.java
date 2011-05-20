@@ -159,14 +159,14 @@ public class GGP_SpectatorServlet extends HttpServlet {
     
     public void performCreationValidationChecks(JSONObject newMatchJSON) throws IOException {
         try {
-            long startTime = newMatchJSON.getLong("startTime");
-            if (startTime < 1000000000000L || startTime > 2000000000000L) {
-                throw new IOException("Unreasonable start time.");
-            }
-            
-            String randomToken = newMatchJSON.getString("randomToken");
-            if (randomToken.length() < 12) {
+            verifyReasonableTime(newMatchJSON.getLong("startTime"));
+
+            if (newMatchJSON.getString("randomToken").length() < 12) {
                 throw new IOException("Random token is too short.");
+            }
+
+            if (newMatchJSON.has("matchHostPK") && !newMatchJSON.has("matchHostSignature")) {
+                throw new IOException("Signatures required for matches identified with public keys.");
             }
         } catch(JSONException e) {
             throw new IOException("Could not parse JSON: " + e.toString());
