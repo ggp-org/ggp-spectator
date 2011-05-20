@@ -1,8 +1,8 @@
 <configurations>
-  <configuration name="Simple Mapper">
+  <configuration name="FieldStatsMapper">
     <property>
       <name>mapreduce.map.class</name>
-      <value>ggp.spectator.SimpleMapper</value>
+      <value>ggp.spectator.mapreduce.FieldStatsMapper</value>
     </property>
     <property>
       <name>mapreduce.inputformat.class</name>

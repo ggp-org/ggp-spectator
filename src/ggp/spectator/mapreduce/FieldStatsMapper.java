@@ -1,4 +1,4 @@
-package ggp.spectator;
+package ggp.spectator.mapreduce;
 
 import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.Key;
@@ -8,12 +8,14 @@ import com.google.appengine.tools.mapreduce.AppEngineMapper;
 
 import org.apache.hadoop.io.NullWritable;
 
+import ggp.spectator.MatchData;
+
 import java.util.logging.Logger;
 
-public class SimpleMapper extends AppEngineMapper<Key, Entity, NullWritable, NullWritable> {
-  private static final Logger log = Logger.getLogger(SimpleMapper.class.getName());
+public class FieldStatsMapper extends AppEngineMapper<Key, Entity, NullWritable, NullWritable> {
+  private static final Logger log = Logger.getLogger(FieldStatsMapper.class.getName());
 
-  public SimpleMapper() {
+  public FieldStatsMapper() {
       ;
   }
 
@@ -47,17 +49,17 @@ public class SimpleMapper extends AppEngineMapper<Key, Entity, NullWritable, Nul
   @Override
   public void map(Key key, Entity value, Context context) {
     log.warning("Mapping key: " + key);
-
+    
     try {
         String theJSON = ((Text)value.getProperty("theMatchJSON")).getValue();
         JSONObject theMatch = new JSONObject(theJSON);
 
         int nClientIDs = 0;
-        try {
-            MatchData m = MatchData.loadExistingMatchFromJSON(Persistence.getPersistenceManager(), theMatch);
+        try {            
+            MatchData m = MatchData.loadMatchData(key.getName());
             nClientIDs = m.numClientIDs();
         } catch (Exception q) {
-            context.getCounter("clientIDs", "Unparseable").increment(1);
+            context.getCounter("clientIDs", "Unparseable").increment(1);            
         }
         
         recordWhetherJSONHas(context, theMatch, "matchId");
@@ -86,13 +88,13 @@ public class SimpleMapper extends AppEngineMapper<Key, Entity, NullWritable, Nul
             boolean isCompleted = theMatch.getBoolean("isCompleted");
             if (isCompleted) {
                 context.getCounter("isCompleted", "Yes").increment(1);
-                context.getCounter("clientIDs", "completed").increment(nClientIDs);
+                context.getCounter("clientIDs", "forCompletedMatches").increment(nClientIDs);
             } else {
                 context.getCounter("isCompleted", "No").increment(1);
-                context.getCounter("clientIDs", "ongoing").increment(nClientIDs);
+                context.getCounter("clientIDs", "forOngoingMatches").increment(nClientIDs);
             }
         } catch (Exception e2) {
-            context.getCounter("isCompleted", "Unknown").increment(1);
+            context.getCounter("isCompleted", "forIndeterminateMatches").increment(1);
             context.getCounter("clientIDs", "Unknown").increment(nClientIDs);
         }
         

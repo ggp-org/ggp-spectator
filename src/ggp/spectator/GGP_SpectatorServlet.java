@@ -26,6 +26,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
         // Get the requested URL, and make sure that it starts with
         // the expected "/matches/" prefix.
         String theURL = req.getRequestURI();
+        resp.setContentType(getContentType(theURL));
         if(!theURL.startsWith("/matches/")) {
             // TODO: Add a proper splash page, etc. For now, we reject any URL
             // that doesn't begin with /matches/.
@@ -46,14 +47,14 @@ public class GGP_SpectatorServlet extends HttpServlet {
             writeStaticPage(resp, "MatchPage.html");
             return;
         }        
-        
+
         // If they're requesting a channel token, we can handle
         // that immediately without needing further parsing.
         if(theURL.equals("channel.js")) {
             writeChannelToken(resp);
             return;            
         }
-        
+
         // If they're using a channel token to register for updates on a
         // particular match, we can handle that immediately by parsing out
         // the match key and the channel token.
@@ -72,19 +73,19 @@ public class GGP_SpectatorServlet extends HttpServlet {
         boolean showFeedView = false;
         if(theURL.endsWith("/feed.atom")) {
             showFeedView = true;
-            theURL = theURL.substring(0, theURL.length()-10);            
+            theURL = theURL.substring(0, theURL.length()-10);
         }
 
         MatchData theMatch = MatchData.loadMatchData(theURL);
         if (theMatch == null) {
             resp.setStatus(404);
+            return;
+        }
+        
+        if (showFeedView) {
+            resp.getWriter().println(theMatch.getAtomFeed());
         } else {
-            if (showFeedView) {
-                resp.setContentType("application/atom+xml");
-                resp.getWriter().println(theMatch.getAtomFeed());
-            } else {
-                resp.getWriter().println(theMatch.getMatchJSON());
-            }
+            resp.getWriter().println(theMatch.getMatchJSON());
         }
     }
 
@@ -279,6 +280,32 @@ public class GGP_SpectatorServlet extends HttpServlet {
     
     // ========================================================================
     // Generically useful utility functions.
+
+    private static String getContentType(String theURL) {
+        if (theURL.endsWith(".xml")) {
+            return "application/xml";
+        } else if (theURL.endsWith(".xsl")) {
+            return "application/xml";
+        } else if (theURL.endsWith(".js")) {
+            return "text/javascript";   
+        } else if (theURL.endsWith(".json")) {
+            return "text/javascript";
+        } else if (theURL.endsWith(".html")) {
+            return "text/html";
+        } else if (theURL.endsWith(".png")) {
+            return "image/png";
+        } else if (theURL.endsWith(".atom")) {
+            return "application/atom+xml";
+        } else {
+            if (theURL.equals("/")) {
+                return "text/html";
+            } else if (theURL.endsWith("/")) {
+                return "text/javascript";
+            }
+            
+            return "text/plain";
+        }
+    }    
     
     public void writeStaticPage(HttpServletResponse resp, String thePage) throws IOException {
         FileReader fr = new FileReader("root/" + thePage);
