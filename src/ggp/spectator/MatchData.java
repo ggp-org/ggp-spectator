@@ -47,12 +47,22 @@ public class MatchData {
         }
     }
     
-    public void addClientID(String clientID) {
+    public boolean addClientID(String clientID) {
+        try {
+            JSONObject theMatchJSON = getMatchJSON();
+            if (theMatchJSON != null && theMatchJSON.has("isCompleted") && theMatchJSON.getBoolean("isCompleted")) {
+                return false; 
+            }
+        } catch (JSONException e) {
+            ;
+        }
         if (theClientIDs == null) theClientIDs = new HashSet<String>();
         theClientIDs.add(clientID);
+        return true;
     }
 
     public int numClientIDs() {
+        if (theClientIDs == null) return 0;
         return theClientIDs.size();
     }
 
@@ -67,6 +77,13 @@ public class MatchData {
     public void setMatchJSON(JSONObject theNewJSON) {
         this.theMatchJSON = new Text(theNewJSON.toString());
         this.lastUpdated = new Date();
+        try {
+            if (theNewJSON.has("isCompleted") && theNewJSON.getBoolean("isCompleted")) {
+                this.theClientIDs = null;
+            }
+        } catch (JSONException e) {
+            ;
+        }
     }
 
     public JSONObject getMatchJSON() {

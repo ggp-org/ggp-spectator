@@ -261,16 +261,12 @@ public class GGP_SpectatorServlet extends HttpServlet {
         PersistenceManager pm = Persistence.getPersistenceManager();
         try {
             theMatch = pm.detachCopy(pm.getObjectById(MatchData.class, theKey));
-            try {
-                if (theMatch.getMatchJSON().getBoolean("isCompleted")) {
-                    resp.getWriter().write("Match [" + theKey + "] already completed; no need to register.");
-                    throw new JDOObjectNotFoundException();
-                }
-            } catch (JSONException e2) {
+            if (theMatch.addClientID(theClientID)) {
+                pm.makePersistent(theMatch);
+                resp.getWriter().write("Registered for [" + theKey + "] as [" + theClientID + "].");
+            } else {
+                resp.getWriter().write("Match [" + theKey + "] already completed; no need to register.");
             }
-            theMatch.addClientID(theClientID);
-            pm.makePersistent(theMatch);
-            resp.getWriter().write("Registered for [" + theKey + "] as [" + theClientID + "].");
         } catch(JDOObjectNotFoundException e) {
             ;
         } finally {
