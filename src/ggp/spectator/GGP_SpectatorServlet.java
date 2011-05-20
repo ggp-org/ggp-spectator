@@ -11,6 +11,7 @@ import javax.jdo.PersistenceManager;
 import javax.servlet.http.*;
 
 import com.google.appengine.api.channel.ChannelServiceFactory;
+import com.google.appengine.repackaged.org.json.JSONArray;
 import com.google.appengine.repackaged.org.json.JSONException;
 import com.google.appengine.repackaged.org.json.JSONObject;
 
@@ -183,13 +184,16 @@ public class GGP_SpectatorServlet extends HttpServlet {
             verifyEquals(oldMatchJSON, newMatchJSON, "gameMetaURL");
             verifyEquals(oldMatchJSON, newMatchJSON, "gameName");
             verifyEquals(oldMatchJSON, newMatchJSON, "gameRulesheetHash");
-            
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "gameRoleNames", false);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "playerNamesFromHost", false);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "moves", true);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "errors", true);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "states", true);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "stateTimes", true);            
+
             if (oldMatchJSON.has("isCompleted") && newMatchJSON.has("isCompleted") && oldMatchJSON.getBoolean("isCompleted") && !newMatchJSON.getBoolean("isCompleted")) {
                 throw new IOException("Cannot transition from completed to not-completed.");
-            }
-            if (oldMatchJSON.getJSONArray("states").length() > newMatchJSON.getJSONArray("states").length()) {
-                throw new IOException("Number of states decreased from " + oldMatchJSON.getJSONArray("states").length() + " to " + newMatchJSON.getJSONArray("states").length() + " during update: not allowed.");
-            }
+            }            
         } catch(JSONException e) {
             throw new IOException("Could not parse JSON: " + e.toString());
         }
@@ -206,7 +210,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
             verifyHas(theMatchJSON, "moves");
             verifyHas(theMatchJSON, "stateTimes");
             verifyHas(theMatchJSON, "gameMetaURL");
-            
+
             int movesLength = theMatchJSON.getJSONArray("moves").length();
             int statesLength = theMatchJSON.getJSONArray("states").length();
             int stateTimesLength = theMatchJSON.getJSONArray("stateTimes").length();
@@ -216,9 +220,26 @@ public class GGP_SpectatorServlet extends HttpServlet {
             if (statesLength != movesLength+1) {
                 throw new IOException("There are " + statesLength + " states, but " + movesLength + " moves. Inconsistent!");
             }
+
+            long theTime = theMatchJSON.getLong("startTime");
+            verifyReasonableTime(theMatchJSON.getLong("startTime"));
+            for (int i = 0; i < stateTimesLength; i++) {
+                verifyReasonableTime(theMatchJSON.getJSONArray("stateTimes").getLong(i));
+                if (theTime > theMatchJSON.getJSONArray("stateTimes").getLong(i)) {
+                    throw new IOException("Time sequence goes backward!");
+                } else {
+                    theTime = theMatchJSON.getJSONArray("stateTimes").getLong(i);
+                }
+            }
         } catch(JSONException e) {
             throw new IOException("Could not parse JSON: " + e.toString());
         }
+    }
+    
+    public void verifyReasonableTime(long theTime) throws IOException {
+        if (theTime < 0) throw new IOException("Time is negative!");
+        if (theTime < 1200000000000L) throw new IOException("Time is before GGP Galaxy began.");
+        if (theTime > System.currentTimeMillis() + 604800000L) throw new IOException("Time is after a week from now.");        
     }
     
     public void verifyHas(JSONObject obj, String k) throws IOException {
@@ -227,19 +248,35 @@ public class GGP_SpectatorServlet extends HttpServlet {
         }
     }
     
-    public void verifyEquals(JSONObject old, JSONObject newer, String k) throws IOException {
-        try {
-            if (!old.has(k) && !newer.has(k)) {
-                return;
-            } else if (!old.has(k)) {
-                throw new IOException("Incompability for " + k + ": old has null, new has [" + newer.get(k) + "].");
-            } else if (!old.get(k).equals(newer.get(k))) {
-                throw new IOException("Incompability for " + k + ": old has [" + old.get(k) + "], new has [" + newer.get(k) + "].");
-            }
-        } catch (JSONException e) {
-            throw new IOException("JSON parsing exception: " + e.toString());
+    public void verifyEquals(JSONObject old, JSONObject newer, String k) throws JSONException, IOException {
+        if (!old.has(k) && !newer.has(k)) {
+            return;
+        } else if (!old.has(k)) {
+            throw new IOException("Incompability for " + k + ": old has null, new has [" + newer.get(k) + "].");
+        } else if (!old.get(k).equals(newer.get(k))) {
+            throw new IOException("Incompability for " + k + ": old has [" + old.get(k) + "], new has [" + newer.get(k) + "].");
         }
     }
+    
+    public void verifyOptionalArraysEqual(JSONObject old, JSONObject newer, String arr, boolean arrayCanExpand) throws JSONException, IOException {
+        if (!old.has(arr) && !newer.has(arr)) return;
+        if (old.has(arr) && !newer.has(arr)) throw new IOException("Array " + arr + " missing from new, present in old.");
+        if (!old.has(arr) && newer.has(arr)) return; // okay for the array to appear mid-way through the game
+        JSONArray oldArr = old.getJSONArray(arr);
+        JSONArray newArr = newer.getJSONArray(arr);
+        if (!arrayCanExpand && oldArr.length() != newArr.length()) throw new IOException("Array " + arr + " has length " + newArr.length() + " in new, length " + oldArr.length() + " in old.");
+        if (newArr.length() < oldArr.length()) throw new IOException("Array " + arr + " shrank from length " + oldArr.length() + " to length " + newArr.length() + ".");
+        for (int i = 0; i < oldArr.length(); i++) {
+            if (oldArr.get(i) instanceof JSONArray) {
+                if (!(newArr.get(i) instanceof JSONArray))
+                    throw new IOException("Array " + arr + " used to have interior arrays but no longer does, in position " + i + ".");
+                if(!oldArr.getJSONArray(i).toString().equals(newArr.getJSONArray(i).toString()))
+                    throw new IOException("Array " + arr + " has disagreement beween new [" + newArr.get(i) + "] and old [" + oldArr.get(i) + "] at element " + i + ".");
+            } else if (!oldArr.get(i).equals(newArr.get(i))) {
+                throw new IOException("Array " + arr + " has disagreement beween new [" + newArr.get(i) + "] and old [" + oldArr.get(i) + "] at element " + i + ".");
+            }
+        }
+    }    
     
     // ========================================================================
     // Channel token handling: we need to be able to create channel tokens/IDs,
