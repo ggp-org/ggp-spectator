@@ -139,8 +139,9 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.getWriter().println(theMatch.getMatchKey());
         resp.getWriter().close();
         
-        // Ping the channel clients and the PuSH hub.
+        // Ping the channel clients and the PuSH hub.        
         theMatch.pingChannelClients();
+        RecentMatchKeys.addRecentMatchKey(theMatch.getMatchKey());
         PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");
     }
     
