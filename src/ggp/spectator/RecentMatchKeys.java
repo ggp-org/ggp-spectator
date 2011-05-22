@@ -20,7 +20,7 @@ public class RecentMatchKeys {
     private static final int kRecentMatchKeysToRecord = 100;    
     
     private RecentMatchKeys() {
-        thePrimaryKey = "ServerState";
+        thePrimaryKey = "RecentMatchKeys";
         recentMatchKeys = new ArrayList<String>();
     }
     
@@ -35,20 +35,18 @@ public class RecentMatchKeys {
             }            
         } catch(JDOObjectNotFoundException e) {
             ;
-        } finally {
-            pm.close();
         }
-        RecentMatchKeys s;
+        RecentMatchKeys recent;
         if (!theSet.isEmpty()) {
-            s = theSet.iterator().next();
+            recent = theSet.iterator().next();
         } else {
-            s = new RecentMatchKeys();
+            recent = new RecentMatchKeys();
         }
-        s.recentMatchKeys.add(theKey);
-        if (s.recentMatchKeys.size() > kRecentMatchKeysToRecord) {
-            s.recentMatchKeys.remove(0);
+        recent.recentMatchKeys.add(theKey);
+        if (recent.recentMatchKeys.size() > kRecentMatchKeysToRecord) {
+            recent.recentMatchKeys.remove(0);
         }
-        pm.makePersistent(s);
+        pm.makePersistent(recent);
         pm.close();
     }
     

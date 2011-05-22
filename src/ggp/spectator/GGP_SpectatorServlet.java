@@ -28,7 +28,10 @@ public class GGP_SpectatorServlet extends HttpServlet {
         // the expected "/matches/" prefix.
         String theURL = req.getRequestURI();
         resp.setContentType(getContentType(theURL));
-        if(!theURL.startsWith("/matches/")) {
+        if (theURL.startsWith("/data/")) {
+            handleRPC(resp, theURL.substring("/data/".length()));
+            return;
+        } else if(!theURL.startsWith("/matches/")) {
             // TODO: Add a proper splash page, etc. For now, we reject any URL
             // that doesn't begin with /matches/.
             resp.setStatus(404);
@@ -150,6 +153,26 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
         resp.setHeader("Access-Control-Allow-Headers", "*");
         resp.setHeader("Access-Control-Allow-Age", "86400");    
+    }
+    
+    private void handleRPC(HttpServletResponse resp, String theURL) throws IOException {
+        JSONObject theResult = null;
+        if (theURL.equals("recent")) {   
+            try {
+                theResult = new JSONObject();
+                theResult.put("recentKeys", RecentMatchKeys.getRecentMatchKeys());
+            } catch (JSONException e) {
+                theResult = null;
+            }
+        }
+        if (theResult == null) {
+            resp.setStatus(404);
+            return;
+        } else {
+            resp.setStatus(200);
+            resp.getWriter().println(theResult.toString());
+            return;
+        }
     }
     
     // =======================================================================
