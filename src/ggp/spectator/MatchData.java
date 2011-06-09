@@ -31,7 +31,6 @@ public class MatchData {
     @Persistent private Text theMatchJSON;
     @Persistent private Date lastUpdated;
 
-
     // When we finish a match, we want to clear the persistent client ID list.
     // However we still need to send out one final ping, so we keep a temporary
     // version of the list in-memory until after that final ping is sent.
