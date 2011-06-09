@@ -30,7 +30,12 @@ public class MatchData {
     @Persistent private String theAuthToken;
     @Persistent private Text theMatchJSON;
     @Persistent private Date lastUpdated;
-    
+
+
+    // When we finish a match, we want to clear the persistent client ID list.
+    // However we still need to send out one final ping, so we keep a temporary
+    // version of the list in-memory until after that final ping is sent.
+    private Set<String> tempClientIDs;
     @Persistent private Set<String> theClientIDs;
 
     public MatchData(JSONObject theMatchJSON, String authToken) throws IOException {
@@ -67,10 +72,17 @@ public class MatchData {
     }
 
     public void pingChannelClients() {
-        if (theClientIDs == null) return;        
+        if (theClientIDs == null && tempClientIDs == null) return;
         ChannelService chanserv = ChannelServiceFactory.getChannelService();
-        for(String clientID : theClientIDs) {
-            chanserv.sendMessage(new ChannelMessage(clientID, theMatchJSON.getValue()));
+        if (theClientIDs != null) {
+            for(String clientID : theClientIDs) {
+                chanserv.sendMessage(new ChannelMessage(clientID, theMatchJSON.getValue()));
+            }
+        }
+        if (tempClientIDs != null) {
+            for(String clientID : tempClientIDs) {
+                chanserv.sendMessage(new ChannelMessage(clientID, theMatchJSON.getValue()));
+            }            
         }
     }
 
@@ -79,6 +91,7 @@ public class MatchData {
         this.lastUpdated = new Date();
         try {
             if (theNewJSON.has("isCompleted") && theNewJSON.getBoolean("isCompleted")) {
+                tempClientIDs = theClientIDs;
                 this.theClientIDs = null;
             }
         } catch (JSONException e) {
