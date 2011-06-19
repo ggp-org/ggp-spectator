@@ -94,7 +94,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
     }
 
     public void doPost(HttpServletRequest req, HttpServletResponse resp)
-            throws IOException {        
+            throws IOException {
         resp.setHeader("Access-Control-Allow-Origin", "*");
         resp.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
         resp.setHeader("Access-Control-Allow-Headers", "*");
@@ -104,48 +104,54 @@ public class GGP_SpectatorServlet extends HttpServlet {
         if(!theURL.equals("/"))
             return;
 
-        JSONObject theMatchJSON;
-        String theAuthToken = req.getParameter("AUTH");
         try {
-            theMatchJSON = new JSONObject(req.getParameter("DATA"));
-            String theRepository = new URL(theMatchJSON.getString("gameMetaURL")).getHost();
-            if (!theRepository.equals("ggp-repository.appspot.com") &&
-                !theRepository.equals("games.ggp.org")) {
-                // TODO: Make this more permissive. What's the best way to do this
-                // while still providing security for viewers?
-                throw new IOException("Repository not whitelisted: " + theRepository);
+            JSONObject theMatchJSON;
+            String theAuthToken = req.getParameter("AUTH");
+            try {
+                theMatchJSON = new JSONObject(req.getParameter("DATA"));
+                String theRepository = new URL(theMatchJSON.getString("gameMetaURL")).getHost();
+                if (!theRepository.equals("ggp-repository.appspot.com") &&
+                    !theRepository.equals("games.ggp.org")) {
+                    // TODO: Make this more permissive. What's the best way to do this
+                    // while still providing security for viewers?
+                    throw new ValidationException("Repository not whitelisted: " + theRepository);
+                }
+            } catch (JSONException e) {
+                throw new ValidationException(e.toString());
             }
-        } catch (JSONException e) {
-            throw new IOException(e);
-        }
-
-        MatchData theMatch = null;
-        PersistenceManager pm = Persistence.getPersistenceManager();
-        try {
-            theMatch = MatchData.loadExistingMatchFromJSON(pm, theMatchJSON);
-            if (!theMatch.getAuthToken().equals(theAuthToken)) {
-                throw new IOException("Unauthorized auth token used to update match.");
+    
+            MatchData theMatch = null;
+            PersistenceManager pm = Persistence.getPersistenceManager();
+            try {
+                theMatch = MatchData.loadExistingMatchFromJSON(pm, theMatchJSON);
+                if (!theMatch.getAuthToken().equals(theAuthToken)) {
+                    throw new ValidationException("Unauthorized auth token used to update match.");
+                }
+                performUpdateValidationChecks(theMatch.getMatchJSON(), theMatchJSON);
+                performInternalConsistencyChecks(theMatchJSON);
+                theMatch.setMatchJSON(theMatchJSON);
+                pm.makePersistent(theMatch);
+            } catch(JDOObjectNotFoundException e) {
+                performCreationValidationChecks(theMatchJSON);
+                performInternalConsistencyChecks(theMatchJSON);
+                theMatch = new MatchData(theMatchJSON, theAuthToken);;
+            } finally {
+                pm.close();
             }
-            performUpdateValidationChecks(theMatch.getMatchJSON(), theMatchJSON);
-            performInternalConsistencyChecks(theMatchJSON);
-            theMatch.setMatchJSON(theMatchJSON);
-            pm.makePersistent(theMatch);
-        } catch(JDOObjectNotFoundException e) {
-            performCreationValidationChecks(theMatchJSON);
-            performInternalConsistencyChecks(theMatchJSON);
-            theMatch = new MatchData(theMatchJSON, theAuthToken);;
-        } finally {
-            pm.close();
+            
+            // Respond to the match host as soon as possible.
+            resp.getWriter().println(theMatch.getMatchKey());
+            resp.getWriter().close();
+            
+            // Ping the channel clients and the PuSH hub.        
+            theMatch.pingChannelClients();
+            RecentMatchKeys.addRecentMatchKey(theMatch.getMatchKey());
+            PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");            
+        } catch (ValidationException ve) {
+            resp.setStatus(500);
+            resp.getWriter().println(ve.toString());
+            resp.getWriter().close();
         }
-
-        // Respond to the match host as soon as possible.
-        resp.getWriter().println(theMatch.getMatchKey());
-        resp.getWriter().close();
-        
-        // Ping the channel clients and the PuSH hub.        
-        theMatch.pingChannelClients();
-        RecentMatchKeys.addRecentMatchKey(theMatch.getMatchKey());
-        PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");
     }
     
     public void doOptions(HttpServletRequest req, HttpServletResponse resp) throws IOException {  
@@ -181,23 +187,29 @@ public class GGP_SpectatorServlet extends HttpServlet {
     // are not comprehensive, but are intended to provide basic sanity guarantees
     // so that we aren't storing total nonsense in the spectator server.
     
-    public void performCreationValidationChecks(JSONObject newMatchJSON) throws IOException {
+    class ValidationException extends IOException {
+        public ValidationException(String x) {
+            super(x);
+        }
+    }
+    
+    public void performCreationValidationChecks(JSONObject newMatchJSON) throws ValidationException {
         try {
             verifyReasonableTime(newMatchJSON.getLong("startTime"));
 
             if (newMatchJSON.getString("randomToken").length() < 12) {
-                throw new IOException("Random token is too short.");
+                throw new ValidationException("Random token is too short.");
             }
 
             if (newMatchJSON.has("matchHostPK") && !newMatchJSON.has("matchHostSignature")) {
-                throw new IOException("Signatures required for matches identified with public keys.");
+                throw new ValidationException("Signatures required for matches identified with public keys.");
             }
         } catch(JSONException e) {
-            throw new IOException("Could not parse JSON: " + e.toString());
+            throw new ValidationException("Could not parse JSON: " + e.toString());
         }
     }
     
-    public void performUpdateValidationChecks(JSONObject oldMatchJSON, JSONObject newMatchJSON) throws IOException {
+    public void performUpdateValidationChecks(JSONObject oldMatchJSON, JSONObject newMatchJSON) throws ValidationException {
         try {
             verifyEquals(oldMatchJSON, newMatchJSON, "matchId");
             verifyEquals(oldMatchJSON, newMatchJSON, "startTime");
@@ -216,14 +228,14 @@ public class GGP_SpectatorServlet extends HttpServlet {
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "stateTimes", true);            
 
             if (oldMatchJSON.has("isCompleted") && newMatchJSON.has("isCompleted") && oldMatchJSON.getBoolean("isCompleted") && !newMatchJSON.getBoolean("isCompleted")) {
-                throw new IOException("Cannot transition from completed to not-completed.");
+                throw new ValidationException("Cannot transition from completed to not-completed.");
             }            
         } catch(JSONException e) {
-            throw new IOException("Could not parse JSON: " + e.toString());
+            throw new ValidationException("Could not parse JSON: " + e.toString());
         }
     }
     
-    public void performInternalConsistencyChecks(JSONObject theMatchJSON) throws IOException {
+    public void performInternalConsistencyChecks(JSONObject theMatchJSON) throws ValidationException {
         try {
             verifyHas(theMatchJSON, "matchId");
             verifyHas(theMatchJSON, "startTime");
@@ -239,10 +251,10 @@ public class GGP_SpectatorServlet extends HttpServlet {
             int statesLength = theMatchJSON.getJSONArray("states").length();
             int stateTimesLength = theMatchJSON.getJSONArray("stateTimes").length();
             if (statesLength != stateTimesLength) {
-                throw new IOException("There are " + statesLength + " states, but " + stateTimesLength + " state times. Inconsistent!");
+                throw new ValidationException("There are " + statesLength + " states, but " + stateTimesLength + " state times. Inconsistent!");
             }
             if (statesLength != movesLength+1) {
-                throw new IOException("There are " + statesLength + " states, but " + movesLength + " moves. Inconsistent!");
+                throw new ValidationException("There are " + statesLength + " states, but " + movesLength + " moves. Inconsistent!");
             }
 
             long theTime = theMatchJSON.getLong("startTime");
@@ -250,54 +262,54 @@ public class GGP_SpectatorServlet extends HttpServlet {
             for (int i = 0; i < stateTimesLength; i++) {
                 verifyReasonableTime(theMatchJSON.getJSONArray("stateTimes").getLong(i));
                 if (theTime > theMatchJSON.getJSONArray("stateTimes").getLong(i)) {
-                    throw new IOException("Time sequence goes backward!");
+                    throw new ValidationException("Time sequence goes backward!");
                 } else {
                     theTime = theMatchJSON.getJSONArray("stateTimes").getLong(i);
                 }
             }
         } catch(JSONException e) {
-            throw new IOException("Could not parse JSON: " + e.toString());
+            throw new ValidationException("Could not parse JSON: " + e.toString());
         }
     }
     
-    public void verifyReasonableTime(long theTime) throws IOException {
-        if (theTime < 0) throw new IOException("Time is negative!");
-        if (theTime < 1200000000000L) throw new IOException("Time is before GGP Galaxy began.");
-        if (theTime > System.currentTimeMillis() + 604800000L) throw new IOException("Time is after a week from now.");        
+    public void verifyReasonableTime(long theTime) throws ValidationException {
+        if (theTime < 0) throw new ValidationException("Time is negative!");
+        if (theTime < 1200000000000L) throw new ValidationException("Time is before GGP Galaxy began.");
+        if (theTime > System.currentTimeMillis() + 604800000L) throw new ValidationException("Time is after a week from now.");        
     }
     
-    public void verifyHas(JSONObject obj, String k) throws IOException {
+    public void verifyHas(JSONObject obj, String k) throws ValidationException {
         if (!obj.has(k)) {
-            throw new IOException("Could not find required field " + k);
+            throw new ValidationException("Could not find required field " + k);
         }
     }
     
-    public void verifyEquals(JSONObject old, JSONObject newer, String k) throws JSONException, IOException {
+    public void verifyEquals(JSONObject old, JSONObject newer, String k) throws JSONException, ValidationException {
         if (!old.has(k) && !newer.has(k)) {
             return;
         } else if (!old.has(k)) {
-            throw new IOException("Incompability for " + k + ": old has null, new has [" + newer.get(k) + "].");
+            throw new ValidationException("Incompability for " + k + ": old has null, new has [" + newer.get(k) + "].");
         } else if (!old.get(k).equals(newer.get(k))) {
-            throw new IOException("Incompability for " + k + ": old has [" + old.get(k) + "], new has [" + newer.get(k) + "].");
+            throw new ValidationException("Incompability for " + k + ": old has [" + old.get(k) + "], new has [" + newer.get(k) + "].");
         }
     }
     
-    public void verifyOptionalArraysEqual(JSONObject old, JSONObject newer, String arr, boolean arrayCanExpand) throws JSONException, IOException {
+    public void verifyOptionalArraysEqual(JSONObject old, JSONObject newer, String arr, boolean arrayCanExpand) throws JSONException, ValidationException {
         if (!old.has(arr) && !newer.has(arr)) return;
-        if (old.has(arr) && !newer.has(arr)) throw new IOException("Array " + arr + " missing from new, present in old.");
+        if (old.has(arr) && !newer.has(arr)) throw new ValidationException("Array " + arr + " missing from new, present in old.");
         if (!old.has(arr) && newer.has(arr)) return; // okay for the array to appear mid-way through the game
         JSONArray oldArr = old.getJSONArray(arr);
         JSONArray newArr = newer.getJSONArray(arr);
-        if (!arrayCanExpand && oldArr.length() != newArr.length()) throw new IOException("Array " + arr + " has length " + newArr.length() + " in new, length " + oldArr.length() + " in old.");
-        if (newArr.length() < oldArr.length()) throw new IOException("Array " + arr + " shrank from length " + oldArr.length() + " to length " + newArr.length() + ".");
+        if (!arrayCanExpand && oldArr.length() != newArr.length()) throw new ValidationException("Array " + arr + " has length " + newArr.length() + " in new, length " + oldArr.length() + " in old.");
+        if (newArr.length() < oldArr.length()) throw new ValidationException("Array " + arr + " shrank from length " + oldArr.length() + " to length " + newArr.length() + ".");
         for (int i = 0; i < oldArr.length(); i++) {
             if (oldArr.get(i) instanceof JSONArray) {
                 if (!(newArr.get(i) instanceof JSONArray))
-                    throw new IOException("Array " + arr + " used to have interior arrays but no longer does, in position " + i + ".");
+                    throw new ValidationException("Array " + arr + " used to have interior arrays but no longer does, in position " + i + ".");
                 if(!oldArr.getJSONArray(i).toString().equals(newArr.getJSONArray(i).toString()))
-                    throw new IOException("Array " + arr + " has disagreement beween new [" + newArr.get(i) + "] and old [" + oldArr.get(i) + "] at element " + i + ".");
+                    throw new ValidationException("Array " + arr + " has disagreement beween new [" + newArr.get(i) + "] and old [" + oldArr.get(i) + "] at element " + i + ".");
             } else if (!oldArr.get(i).equals(newArr.get(i))) {
-                throw new IOException("Array " + arr + " has disagreement beween new [" + newArr.get(i) + "] and old [" + oldArr.get(i) + "] at element " + i + ".");
+                throw new ValidationException("Array " + arr + " has disagreement beween new [" + newArr.get(i) + "] and old [" + oldArr.get(i) + "] at element " + i + ".");
             }
         }
     }    
