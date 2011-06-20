@@ -12,6 +12,7 @@ import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.servlet.http.*;
 
+import util.crypto.SignableJSON;
 import util.symbol.factory.SymbolFactory;
 import util.symbol.factory.exceptions.SymbolFormatException;
 import util.symbol.grammar.SymbolList;
@@ -271,6 +272,15 @@ public class GGP_SpectatorServlet extends HttpServlet {
                     throw new ValidationException("Time sequence goes backward!");
                 } else {
                     theTime = theMatchJSON.getJSONArray("stateTimes").getLong(i);
+                }
+            }
+            
+            if (theMatchJSON.has("matchHostPK")) {
+                if (!SignableJSON.isSignedJSON(theMatchJSON)) {
+                    throw new ValidationException("Match has a host-PK but is not signed!");
+                }
+                if (!SignableJSON.verifySignedJSON(theMatchJSON)) {
+                    throw new ValidationException("Match has a host-PK and is signed, but signature does not validate!");
                 }
             }
         } catch(JSONException e) {
