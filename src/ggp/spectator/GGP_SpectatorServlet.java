@@ -282,6 +282,10 @@ public class GGP_SpectatorServlet extends HttpServlet {
                 if (!SignableJSON.verifySignedJSON(theMatchJSON)) {
                     throw new ValidationException("Match has a host-PK and is signed, but signature does not validate!");
                 }
+            } else {
+                if (theMatchJSON.has("matchHostSignature")) {
+                    throw new ValidationException("Any match with a signature must also contain a matchHostPK field.");
+                }
             }
         } catch(JSONException e) {
             throw new ValidationException("Could not parse JSON: " + e.toString());
