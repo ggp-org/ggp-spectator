@@ -38,6 +38,9 @@ public class GGP_SpectatorServlet extends HttpServlet {
         if (theURL.startsWith("/data/")) {
             handleRPC(resp, theURL.substring("/data/".length()));
             return;
+        } else if (theURL.startsWith("/matches/feeds/")) {
+            handleFeed(resp, theURL.substring("/matches/feeds/".length()));
+            return;
         } else if(!theURL.startsWith("/matches/")) {
             // TODO: Add a proper splash page, etc. For now, we reject any URL
             // that doesn't begin with /matches/.
@@ -150,10 +153,20 @@ public class GGP_SpectatorServlet extends HttpServlet {
             resp.getWriter().println(theMatch.getMatchKey());
             resp.getWriter().close();
             
-            // Ping the channel clients and the PuSH hub.        
+            // Ping the channel clients and the PuSH hub.
             theMatch.pingChannelClients();
-            RecentMatchKeys.addRecentMatchKey(theMatch.getMatchKey());
-            PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");            
+            RecentMatchKeys.addRecentMatchKey(theMatch.getMatchKey());            
+            PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");
+            
+            // When the match is completed, update that feed and ping the PuSH hub.
+            try {
+                if (theMatchJSON.has("isCompleted") && theMatchJSON.getBoolean("isCompleted")) {
+                    AtomKeyFeed.addRecentMatchKey("completedFeed", theMatch.getMatchKey());
+                    PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/feeds/completedFeed.atom");
+                }
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
         } catch (ValidationException ve) {
             resp.setStatus(500);
             resp.getWriter().println(ve.toString());
@@ -185,6 +198,31 @@ public class GGP_SpectatorServlet extends HttpServlet {
             resp.setStatus(200);
             resp.getWriter().println(theResult.toString());
             return;
+        }
+    }
+    
+    private void handleFeed(HttpServletResponse resp, String theFeedKey) throws IOException {
+        if (theFeedKey.isEmpty()) {
+            resp.setStatus(400);
+            resp.getWriter().close();
+            return;
+        }
+        if (!theFeedKey.endsWith(".atom")) {
+            resp.setStatus(200);
+            resp.setContentType("text/html");
+            resp.getWriter().println("<html><head><title>Foo</title><link rel=\"alternate\" type=\"application/atom+xml\" href=\"completedFeed.atom\" title=\"ATOM feed\"></head><body>bar</body></html>");
+            resp.getWriter().close();
+        } else {
+            String theFeed = AtomKeyFeed.getAtomFeed(theFeedKey.replace(".atom", ""));
+            if (theFeed == null) {
+                resp.setStatus(404);
+                resp.getWriter().close();
+            } else {
+                resp.setStatus(200);
+                resp.setContentType("application/atom+xml");
+                resp.getWriter().println(theFeed);
+                resp.getWriter().close();
+            }
         }
     }
     
