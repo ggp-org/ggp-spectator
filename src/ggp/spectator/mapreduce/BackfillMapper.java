@@ -44,13 +44,11 @@ public class BackfillMapper extends AppEngineMapper<Key, Entity, NullWritable, N
     log.warning("Mapping key: " + key);
 
     try {
-        if (!key.getName().startsWith("ap") && !key.getName().startsWith("0")) {
-            String forgedAtomText = "<link href=\"http://matches.ggp.org/matches/" + key.getName() + "/\"/>";
-            RemoteResourceLoader.postRawWithTimeout("http://stats.ggp.org/ingestion/", forgedAtomText, 5000);
-        }
-        context.getCounter("Overall", "Readable").increment(1);
+        String forgedAtomText = "<link href=\"http://matches.ggp.org/matches/" + key.getName() + "/\"/>";
+        RemoteResourceLoader.postRawWithTimeout("http://stats.ggp.org/ingestion/", forgedAtomText, 10000);
+        context.getCounter("Overall", "Sent").increment(1);
     } catch (Exception e) {
-        context.getCounter("Overall", "Unreadable").increment(1);
+        context.getCounter("Overall", "Failed").increment(1);
     }
   }
 }
