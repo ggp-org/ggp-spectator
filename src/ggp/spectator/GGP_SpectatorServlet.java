@@ -155,7 +155,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
             
             // Ping the channel clients and the PuSH hub.
             theMatch.pingChannelClients();
-            RecentMatchKeys.addRecentMatchKey(theMatch.getMatchKey());            
+            AtomKeyFeed.addRecentMatchKey("updatedFeed", theMatch.getMatchKey());            
             PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");
             
             // When the match is completed, update that feed and ping the PuSH hub.
@@ -183,21 +183,12 @@ public class GGP_SpectatorServlet extends HttpServlet {
     
     private void handleRPC(HttpServletResponse resp, String theURL) throws IOException {
         JSONObject theResult = null;
-        if (theURL.equals("recent")) {   
-            try {
-                theResult = new JSONObject();
-                theResult.put("recentKeys", RecentMatchKeys.getRecentMatchKeys());
-            } catch (JSONException e) {
-                theResult = null;
-            }
-        }
+        // TODO(schreib): ... fill in "theResult" based on "theURL" ...
         if (theResult == null) {
             resp.setStatus(404);
-            return;
         } else {
             resp.setStatus(200);
             resp.getWriter().println(theResult.toString());
-            return;
         }
     }
     
@@ -207,23 +198,21 @@ public class GGP_SpectatorServlet extends HttpServlet {
             resp.getWriter().close();
             return;
         }
-        if (!theFeedKey.endsWith(".atom")) {
-            resp.setStatus(200);
-            resp.setContentType("text/html");
-            resp.getWriter().println("<html><head><title>Foo</title><link rel=\"alternate\" type=\"application/atom+xml\" href=\"completedFeed.atom\" title=\"ATOM feed\"></head><body>bar</body></html>");
-            resp.getWriter().close();
-        } else {
-            String theFeed = AtomKeyFeed.getAtomFeed(theFeedKey.replace(".atom", ""));
-            if (theFeed == null) {
-                resp.setStatus(404);
-                resp.getWriter().close();
-            } else {
-                resp.setStatus(200);
-                resp.setContentType("application/atom+xml");
-                resp.getWriter().println(theFeed);
-                resp.getWriter().close();
-            }
+        String theFeed = null;
+        if (theFeedKey.endsWith(".atom")) {
+            theFeed = AtomKeyFeed.getAtomFeed(theFeedKey.replace(".atom", ""));
+            resp.setContentType("application/atom+xml");
+        } else if (theFeedKey.endsWith(".json")) {
+            theFeed = AtomKeyFeed.getJsonFeed(theFeedKey.replace(".json", ""));
+            resp.setContentType("text/javascript");
         }
+        if (theFeed == null) {
+            resp.setStatus(404);
+        } else {
+            resp.setStatus(200);
+            resp.getWriter().println(theFeed);            
+        }
+        resp.getWriter().close();
     }
     
     // =======================================================================

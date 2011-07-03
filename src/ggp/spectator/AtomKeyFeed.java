@@ -6,8 +6,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
+import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.annotations.*;
+
+import com.google.appengine.repackaged.org.json.JSONArray;
+import com.google.appengine.repackaged.org.json.JSONException;
+import com.google.appengine.repackaged.org.json.JSONObject;
 
 @PersistenceCapable
 public class AtomKeyFeed {
@@ -31,8 +36,12 @@ public class AtomKeyFeed {
     /* Static accessor methods */
     public static void addRecentMatchKey(String theFeedKey, String theMatchKey) {
         PersistenceManager pm = Persistence.getPersistenceManager();
-        AtomKeyFeed recent = pm.getObjectById(AtomKeyFeed.class, theFeedKey);
-        if (recent == null) throw new RuntimeException("Cannot create new atom feed! Must be bootstrapped.");
+        AtomKeyFeed recent = null;
+        try {
+            recent = pm.getObjectById(AtomKeyFeed.class, theFeedKey);
+        } catch (JDOObjectNotFoundException onfe) {
+            recent = new AtomKeyFeed(theFeedKey);
+        }
         
         recent.nCount += 1;        
         recent.lastUpdated = new Date();
@@ -62,6 +71,12 @@ public class AtomKeyFeed {
         AtomKeyFeed recent = Persistence.loadSpecific(theFeedKey, AtomKeyFeed.class);
         if (recent == null) return null;
         return recent.getAtomFeed();        
+    }
+    
+    public static String getJsonFeed(String theFeedKey) {
+        AtomKeyFeed recent = Persistence.loadSpecific(theFeedKey, AtomKeyFeed.class);
+        if (recent == null) return null;
+        return recent.getJsonFeed();        
     }    
     
     /* ATOM Methods */
@@ -102,5 +117,20 @@ public class AtomKeyFeed {
         SimpleDateFormat dateFormatGmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         dateFormatGmt.setTimeZone(TimeZone.getTimeZone("GMT"));
         return dateFormatGmt.format(d);
+    }
+    
+    /* JSON Methods */
+    public String getJsonFeed() {
+        JSONObject theFeed = new JSONObject();
+        JSONArray theArray = new JSONArray();
+        try {
+            for (int i = recentMatchEntries_Key.size()-1; i >= 0; i--) {
+                theArray.put(recentMatchEntries_Key.get(i));
+            }
+            theFeed.put(theFeedKey, theArray);
+            return theFeed.toString();
+        } catch (JSONException je) {
+            return null;
+        }
     }    
 }
