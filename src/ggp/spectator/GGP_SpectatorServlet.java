@@ -280,6 +280,16 @@ public class GGP_SpectatorServlet extends HttpServlet {
             verifyHas(theMatchJSON, "moves");
             verifyHas(theMatchJSON, "stateTimes");
             verifyHas(theMatchJSON, "gameMetaURL");
+            
+            try {
+                String theGameURL = theMatchJSON.getString("gameMetaURL");
+                String theSuffix = theGameURL.substring(theGameURL.lastIndexOf("/v"));                
+                Integer.parseInt(theSuffix.substring(2, theSuffix.length()-1));
+            } catch (NumberFormatException nfe) {
+                throw new ValidationException("gameMetaURL is not properly version-qualified.");
+            } catch (IndexOutOfBoundsException ibe) {
+                throw new ValidationException("gameMetaURL is not properly version-qualified.");
+            }
 
             int movesLength = theMatchJSON.getJSONArray("moves").length();
             int statesLength = theMatchJSON.getJSONArray("states").length();
