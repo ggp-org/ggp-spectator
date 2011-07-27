@@ -53,6 +53,11 @@ public class GGP_SpectatorServlet extends HttpServlet {
         if(theURL.endsWith("/")) {
             theURL = theURL.substring(0, theURL.length()-1);
         }
+        if(theURL.trim().length() == 0) {
+            // Currently no content at "/matches/" right now.
+            resp.setStatus(404);
+            return;
+        }
         
         // If they want a match visualization page, provide that without
         // needing to look up the match key or anything, since it'll be
