@@ -160,7 +160,8 @@ public class GGP_SpectatorServlet extends HttpServlet {
             
             // Ping the channel clients and the PuSH hub.
             theMatch.pingChannelClients();
-            AtomKeyFeed.addRecentMatchKey("updatedFeed", theMatch.getMatchKey());            
+            AtomKeyFeed.addRecentMatchKey("updatedFeed", theMatch.getMatchKey());
+            PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/feeds/updatedFeed.atom");
             PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");
             
             // When the match is completed, update that feed and ping the PuSH hub.
