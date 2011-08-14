@@ -297,7 +297,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
                 throw new ValidationException("gameMetaURL is not properly version-qualified.");
             }
 
-            int movesLength = theMatchJSON.getJSONArray("moves").length();
+            int movesLength = theMatchJSON.getJSONArray("moves").length();            
             int statesLength = theMatchJSON.getJSONArray("states").length();
             int stateTimesLength = theMatchJSON.getJSONArray("stateTimes").length();
             if (statesLength != stateTimesLength) {
@@ -305,6 +305,32 @@ public class GGP_SpectatorServlet extends HttpServlet {
             }
             if (statesLength != movesLength+1) {
                 throw new ValidationException("There are " + statesLength + " states, but " + movesLength + " moves. Inconsistent!");
+            }
+            if (movesLength > 0) {
+                int nPlayers = theMatchJSON.getJSONArray("moves").getJSONArray(0).length();
+                for (int i = 0; i < movesLength; i++) {
+                    if (nPlayers != theMatchJSON.getJSONArray("moves").getJSONArray(i).length()) {
+                        throw new ValidationException("Moves array starts with " + nPlayers + " players, but later has " + theMatchJSON.getJSONArray("moves").getJSONArray(i).length() + " moves. Inconsistent!");
+                    }
+                }
+            }
+            if (theMatchJSON.has("errors")) {
+                JSONArray errors = theMatchJSON.getJSONArray("errors");
+                int errorsLength = errors.length();
+                if (errorsLength != statesLength) {
+                    throw new ValidationException("There are " + statesLength + " states, but " + stateTimesLength + " error listings. Inconsistent!");
+                }
+                for (int i = 0; i < errors.length(); i++) {
+                    if (errors.getJSONArray(i).length() != errors.getJSONArray(0).length()) {
+                        throw new ValidationException("Errors array lengths are inconsistent!");
+                    }
+                }
+                if (theMatchJSON.getJSONArray("moves").length() > 0) {
+                    int nPlayers = theMatchJSON.getJSONArray("moves").getJSONArray(0).length();
+                    if (nPlayers != errors.getJSONArray(0).length()) {
+                        throw new ValidationException("Inconsistency between the number of players in moves array, and players in errors array: " + nPlayers + " vs " + errors.getJSONArray(0).length());
+                    }
+                }
             }
 
             long theTime = theMatchJSON.getLong("startTime");
@@ -317,7 +343,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
                     theTime = theMatchJSON.getJSONArray("stateTimes").getLong(i);
                 }
             }
-            
+
             if (theMatchJSON.has("matchHostPK")) {
                 if (!SignableJSON.isSignedJSON(theMatchJSON)) {
                     throw new ValidationException("Match has a host-PK but is not signed!");
@@ -334,19 +360,19 @@ public class GGP_SpectatorServlet extends HttpServlet {
             throw new ValidationException("Could not parse JSON: " + e.toString());
         }
     }
-    
+
     public void verifyReasonableTime(long theTime) throws ValidationException {
         if (theTime < 0) throw new ValidationException("Time is negative!");
         if (theTime < 1200000000000L) throw new ValidationException("Time is before GGP Galaxy began.");
         if (theTime > System.currentTimeMillis() + 604800000L) throw new ValidationException("Time is after a week from now.");        
     }
-    
+
     public void verifyHas(JSONObject obj, String k) throws ValidationException {
         if (!obj.has(k)) {
             throw new ValidationException("Could not find required field " + k);
         }
     }
-    
+
     public void verifyEquals(JSONObject old, JSONObject newer, String k) throws JSONException, ValidationException {
         if (!old.has(k) && !newer.has(k)) {
             return;
@@ -356,7 +382,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
             throw new ValidationException("Incompability for " + k + ": old has [" + old.get(k) + "], new has [" + newer.get(k) + "].");
         }
     }
-    
+
     public void verifyOptionalArraysEqual(JSONObject old, JSONObject newer, String arr, boolean arrayCanExpand, boolean compareElementsAsSymbolSets) throws JSONException, ValidationException {
         if (!old.has(arr) && !newer.has(arr)) return;
         if (old.has(arr) && !newer.has(arr)) throw new ValidationException("Array " + arr + " missing from new, present in old.");
