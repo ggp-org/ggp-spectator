@@ -118,7 +118,8 @@ public class GGP_SpectatorServlet extends HttpServlet {
                 theMatchJSON = new JSONObject(req.getParameter("DATA"));
                 String theRepository = new URL(theMatchJSON.getString("gameMetaURL")).getHost();
                 if (!theRepository.equals("ggp-repository.appspot.com") &&
-                    !theRepository.equals("games.ggp.org")) {
+                    !theRepository.equals("games.ggp.org") &&
+                    !theRepository.equals("dresden.ggp.org")) {
                     // TODO: Make this more permissive. What's the best way to do this
                     // while still providing security for viewers?
                     throw new MatchValidation.ValidationException("Repository not whitelisted: " + theRepository);
@@ -149,13 +150,13 @@ public class GGP_SpectatorServlet extends HttpServlet {
             // Respond to the match host as soon as possible.
             resp.getWriter().println(theMatch.getMatchKey());
             resp.getWriter().close();
-            
+
             // Ping the channel clients and the PuSH hub.
             theMatch.pingChannelClients();
             AtomKeyFeed.addRecentMatchKey("updatedFeed", theMatch.getMatchKey());
             PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/feeds/updatedFeed.atom");
             PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");
-            
+
             // When the match is completed, update that feed and ping the PuSH hub.
             try {
                 if (theMatchJSON.has("isCompleted") && theMatchJSON.getBoolean("isCompleted")) {
