@@ -57,28 +57,6 @@ public class GGP_SpectatorServlet extends HttpServlet {
             return;
         }        
 
-        // If they're requesting a channel token, we can handle
-        // that immediately without needing further parsing.
-        if(theURL.equals("channel.js")) {
-            ChannelService.writeChannelToken(resp);
-            return;            
-        }
-
-        // If they're using a channel token to register for updates on a
-        // particular match, we can handle that immediately by parsing out
-        // the match key and the channel token.
-        if(theURL.endsWith("/channel.js")) {
-            theURL = theURL.substring(0, theURL.length() - 11);
-            if (theURL.contains("/clientId=")) {
-                String theID = theURL.substring(theURL.indexOf("/clientId=")+("/clientId=".length()));
-                String theKey = theURL.substring(0, theURL.indexOf("/clientId="));
-                ChannelService.registerChannelForMatch(resp, theKey, theID);
-            } else {
-                resp.setStatus(404);
-            }
-            return;
-        }
-
         boolean showFeedView = false;
         if(theURL.endsWith("/feed.atom")) {
             showFeedView = true;
@@ -150,7 +128,6 @@ public class GGP_SpectatorServlet extends HttpServlet {
             resp.getWriter().close();
 
             // Ping the channel clients and the PuSH hub.
-            theMatch.pingChannelClients();
             AtomKeyFeed.addRecentMatchKey("updatedFeed", theMatch.getMatchKey());
             PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/feeds/updatedFeed.atom");
             PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");

@@ -16,9 +16,6 @@ import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.jdo.annotations.*;
 
-import com.google.appengine.api.channel.ChannelMessage;
-import com.google.appengine.api.channel.ChannelService;
-import com.google.appengine.api.channel.ChannelServiceFactory;
 import com.google.appengine.api.datastore.Text;
 import com.google.appengine.repackaged.org.json.JSONArray;
 import com.google.appengine.repackaged.org.json.JSONException;
@@ -31,11 +28,7 @@ public class MatchData {
     @Persistent private Text theMatchJSON;
     @Persistent private Date lastUpdated;
 
-    // When we finish a match, we want to clear the persistent client ID list.
-    // However we still need to send out one final ping, so we keep a temporary
-    // version of the list in-memory until after that final ping is sent.
-    private Set<String> tempClientIDs;
-    @Persistent private Set<String> theClientIDs;
+    @Deprecated @Persistent private Set<String> theClientIDs;
 
     public MatchData(JSONObject theMatchJSON, String authToken) throws IOException {
         this.matchKey = getNewKeyForJSON(theMatchJSON);
@@ -51,51 +44,15 @@ public class MatchData {
         }
     }
     
-    public boolean addClientID(String clientID) {
-        try {
-            JSONObject theMatchJSON = getMatchJSON();
-            if (theMatchJSON != null && theMatchJSON.has("isCompleted") && theMatchJSON.getBoolean("isCompleted")) {
-                return false; 
-            }
-        } catch (JSONException e) {
-            ;
-        }
-        if (theClientIDs == null) theClientIDs = new HashSet<String>();
-        theClientIDs.add(clientID);
-        return true;
-    }
-
     public int numClientIDs() {
         if (theClientIDs == null) return 0;
         return theClientIDs.size();
-    }
-
-    public void pingChannelClients() {
-        if (theClientIDs == null && tempClientIDs == null) return;
-        ChannelService chanserv = ChannelServiceFactory.getChannelService();
-        if (theClientIDs != null) {
-            for(String clientID : theClientIDs) {
-                chanserv.sendMessage(new ChannelMessage(clientID, theMatchJSON.getValue()));
-            }
-        }
-        if (tempClientIDs != null) {
-            for(String clientID : tempClientIDs) {
-                chanserv.sendMessage(new ChannelMessage(clientID, theMatchJSON.getValue()));
-            }            
-        }
-    }
-
+    }    
+    
     public void setMatchJSON(JSONObject theNewJSON) {
         this.theMatchJSON = new Text(theNewJSON.toString());
         this.lastUpdated = new Date();
-        try {
-            if (theNewJSON.has("isCompleted") && theNewJSON.getBoolean("isCompleted")) {
-                tempClientIDs = theClientIDs;
-                this.theClientIDs = null;
-            }
-        } catch (JSONException e) {
-            ;
-        }
+        this.theClientIDs = null;
     }
 
     public JSONObject getMatchJSON() {
