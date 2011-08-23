@@ -4,13 +4,11 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
-import java.util.Random;
 
 import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.servlet.http.*;
 
-import com.google.appengine.api.channel.ChannelServiceFactory;
 import com.google.appengine.repackaged.org.json.JSONException;
 import com.google.appengine.repackaged.org.json.JSONObject;
 
@@ -62,7 +60,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
         // If they're requesting a channel token, we can handle
         // that immediately without needing further parsing.
         if(theURL.equals("channel.js")) {
-            writeChannelToken(resp);
+            ChannelService.writeChannelToken(resp);
             return;            
         }
 
@@ -74,7 +72,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
             if (theURL.contains("/clientId=")) {
                 String theID = theURL.substring(theURL.indexOf("/clientId=")+("/clientId=".length()));
                 String theKey = theURL.substring(0, theURL.indexOf("/clientId="));
-                registerChannelForMatch(resp, theKey, theID);
+                ChannelService.registerChannelForMatch(resp, theKey, theID);
             } else {
                 resp.setStatus(404);
             }
@@ -213,39 +211,6 @@ public class GGP_SpectatorServlet extends HttpServlet {
         }
         resp.getWriter().close();
     }
-
-    // ========================================================================
-    // Channel token handling: we need to be able to create channel tokens/IDs,
-    // and register those IDs with particular matches so that we can push updates
-    // to the appropriate channels whenever a particular match is updated.
-    // Note that creation of channel token/IDs is done centrally: you request a
-    // channel token/ID, then you register it with particular matches. This lets
-    // you get updates about multiple matches in the same browser session.
-
-    public void writeChannelToken(HttpServletResponse resp) throws IOException {        
-        String theClientID = getRandomString(32);
-        String theToken = ChannelServiceFactory.getChannelService().createChannel(theClientID);
-        resp.getWriter().println("theChannelID = \"" + theClientID + "\";\n");
-        resp.getWriter().println("theChannelToken = \"" + theToken + "\";\n");
-    }    
-
-    public void registerChannelForMatch(HttpServletResponse resp, String theKey, String theClientID) throws IOException {
-        MatchData theMatch = null;
-        PersistenceManager pm = Persistence.getPersistenceManager();
-        try {
-            theMatch = pm.detachCopy(pm.getObjectById(MatchData.class, theKey));
-            if (theMatch.addClientID(theClientID)) {
-                pm.makePersistent(theMatch);
-                resp.getWriter().write("Registered for [" + theKey + "] as [" + theClientID + "].");
-            } else {
-                resp.getWriter().write("Match [" + theKey + "] already completed; no need to register.");
-            }
-        } catch(JDOObjectNotFoundException e) {
-            ;
-        } finally {
-            pm.close();
-        }
-    }
     
     // ========================================================================
     // Generically useful utility functions.
@@ -288,17 +253,5 @@ public class GGP_SpectatorServlet extends HttpServlet {
         
         resp.setContentType("text/html");
         resp.getWriter().println(response.toString());
-    }
-    
-    public static String getRandomString(int nLength) {
-        Random theGenerator = new Random();
-        String theString = "";
-        for (int i = 0; i < nLength; i++) {
-            int nVal = theGenerator.nextInt(62);
-            if (nVal < 26) theString += (char)('a' + nVal);
-            else if (nVal < 52) theString += (char)('A' + (nVal-26));
-            else if (nVal < 62) theString += (char)('0' + (nVal-52));
-        }
-        return theString;
     }    
 }
