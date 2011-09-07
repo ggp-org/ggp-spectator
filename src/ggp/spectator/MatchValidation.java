@@ -111,7 +111,7 @@ public class MatchValidation {
                 JSONArray errors = theMatchJSON.getJSONArray("errors");
                 int errorsLength = errors.length();
                 if (errorsLength != statesLength) {
-                    throw new ValidationException("There are " + statesLength + " states, but " + stateTimesLength + " error listings. Inconsistent!");
+                    throw new ValidationException("There are " + statesLength + " states, but " + errorsLength + " error listings. Inconsistent!");
                 }
                 for (int i = 0; i < errors.length(); i++) {
                     if (errors.getJSONArray(i).length() != errors.getJSONArray(0).length()) {
