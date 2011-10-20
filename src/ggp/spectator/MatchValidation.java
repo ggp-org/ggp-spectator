@@ -106,6 +106,19 @@ public class MatchValidation {
                         throw new ValidationException("Moves array starts with " + nPlayers + " players, but later has " + theMatchJSON.getJSONArray("moves").getJSONArray(i).length() + " moves. Inconsistent!");
                     }
                 }
+                if (theMatchJSON.has("goalValues")) {
+                    if (theMatchJSON.has("isCompleted") && !theMatchJSON.getBoolean("isCompleted")) {
+                        throw new ValidationException("goalValues is present when isCompleted is false.");
+                    }
+                    if (theMatchJSON.getJSONArray("goalValues").length() != nPlayers) {
+                        throw new ValidationException("Moves array starts with " + nPlayers + " players, but goals array has " + theMatchJSON.getJSONArray("goalValues").length() + " players. Inconsistent!");
+                    }
+                }
+                if (theMatchJSON.has("playerNamesFromHost")) {
+                    if (theMatchJSON.getJSONArray("playerNamesFromHost").length() != nPlayers) {
+                        throw new ValidationException("Moves array starts with " + nPlayers + " players, but playerNamesFromHost array has " + theMatchJSON.getJSONArray("playerNamesFromHost").length() + " players. Inconsistent!");
+                    }                    
+                }
             }
             if (theMatchJSON.has("errors")) {
                 JSONArray errors = theMatchJSON.getJSONArray("errors");
