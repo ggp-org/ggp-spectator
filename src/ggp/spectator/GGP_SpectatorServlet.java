@@ -25,10 +25,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
         // the expected "/matches/" prefix.
         String theURL = req.getRequestURI();
         resp.setContentType(getContentType(theURL));
-        if (theURL.startsWith("/data/")) {
-            handleRPC(resp, theURL.substring("/data/".length()));
-            return;
-        } else if (theURL.startsWith("/matches/feeds/")) {
+        if (theURL.startsWith("/matches/feeds/")) {
             handleFeed(resp, theURL.substring("/matches/feeds/".length()));
             return;
         } else if(!theURL.startsWith("/matches/")) {
@@ -93,8 +90,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
             try {
                 theMatchJSON = new JSONObject(req.getParameter("DATA"));
                 String theRepository = new URL(theMatchJSON.getString("gameMetaURL")).getHost();
-                if (!theRepository.equals("ggp-repository.appspot.com") &&
-                    !theRepository.equals("games.ggp.org") &&
+                if (!theRepository.equals("games.ggp.org") &&
                     !theRepository.equals("dresden.ggp.org")) {
                     // TODO: Make this more permissive. What's the best way to do this
                     // while still providing security for viewers?
@@ -122,7 +118,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
             } finally {
                 pm.close();
             }
-            
+
             // Respond to the match host as soon as possible.
             resp.getWriter().println(theMatch.getMatchKey());
             resp.getWriter().close();
@@ -142,9 +138,9 @@ public class GGP_SpectatorServlet extends HttpServlet {
                 throw new RuntimeException(e);
             }
         } catch (MatchValidation.ValidationException ve) {
-            resp.setStatus(500);
-            resp.getWriter().println(ve.toString());
-            resp.getWriter().close();
+            // For now, we want to pass up any MatchValidation exceptions all the way to the top,
+            // so they appear in the server logs and can be acted upon quickly.
+            throw new RuntimeException(ve);            
         }
     }
     
@@ -154,18 +150,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.setHeader("Access-Control-Allow-Headers", "*");
         resp.setHeader("Access-Control-Allow-Age", "86400");    
     }
-    
-    private void handleRPC(HttpServletResponse resp, String theURL) throws IOException {
-        JSONObject theResult = null;
-        // TODO(schreib): ... fill in "theResult" based on "theURL" ...
-        if (theResult == null) {
-            resp.setStatus(404);
-        } else {
-            resp.setStatus(200);
-            resp.getWriter().println(theResult.toString());
-        }
-    }
-    
+
     private void handleFeed(HttpServletResponse resp, String theFeedKey) throws IOException {
         if (theFeedKey.isEmpty()) {
             resp.setStatus(400);
@@ -213,10 +198,9 @@ public class GGP_SpectatorServlet extends HttpServlet {
             } else if (theURL.endsWith("/")) {
                 return "text/javascript";
             }
-            
             return "text/plain";
         }
-    }    
+    }
     
     public void writeStaticPage(HttpServletResponse resp, String thePage) throws IOException {
         FileReader fr = new FileReader("root/" + thePage);
@@ -230,5 +214,5 @@ public class GGP_SpectatorServlet extends HttpServlet {
         
         resp.setContentType("text/html");
         resp.getWriter().println(response.toString());
-    }    
+    }
 }
