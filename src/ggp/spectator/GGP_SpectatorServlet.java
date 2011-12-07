@@ -90,8 +90,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
             try {
                 theMatchJSON = new JSONObject(req.getParameter("DATA"));
                 String theRepository = new URL(theMatchJSON.getString("gameMetaURL")).getHost();
-                if (!theRepository.equals("games.ggp.org") &&
-                    !theRepository.equals("dresden.ggp.org")) {
+                if (!theRepository.equals("games.ggp.org")) {
                     // TODO: Make this more permissive. What's the best way to do this
                     // while still providing security for viewers?
                     throw new MatchValidation.ValidationException("Repository not whitelisted: " + theRepository);
