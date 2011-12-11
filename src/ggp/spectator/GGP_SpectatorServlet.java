@@ -1,5 +1,8 @@
 package ggp.spectator;
 
+import static com.google.appengine.api.taskqueue.RetryOptions.Builder.withTaskRetryLimit;
+import static com.google.appengine.api.taskqueue.TaskOptions.Builder.withUrl;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -9,6 +12,8 @@ import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
 import javax.servlet.http.*;
 
+import com.google.appengine.api.taskqueue.QueueFactory;
+import com.google.appengine.api.taskqueue.TaskOptions.Method;
 import com.google.appengine.repackaged.org.json.JSONException;
 import com.google.appengine.repackaged.org.json.JSONObject;
 
@@ -72,6 +77,10 @@ public class GGP_SpectatorServlet extends HttpServlet {
             resp.getWriter().println(theMatch.getMatchJSON());
         }
     }
+    
+    private static void addTaskToPingHub(String theFeedURL) {
+        QueueFactory.getDefaultQueue().add(withUrl("/tasks/ping_hub").method(Method.POST).param("feedURL", theFeedURL).retryOptions(withTaskRetryLimit(6)));
+    }
 
     public void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws IOException {
@@ -79,6 +88,11 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
         resp.setHeader("Access-Control-Allow-Headers", "*");
         resp.setHeader("Access-Control-Allow-Age", "86400");            
+        
+        if (req.getRequestURI().equals("/tasks/ping_hub")) {
+            String theFeedURL = req.getParameter("feedURL");
+            PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", theFeedURL);
+        }
         
         String theURL = req.getRequestURI();
         if(!theURL.equals("/"))
@@ -98,7 +112,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
             } catch (JSONException e) {
                 throw new MatchValidation.ValidationException(e.toString());
             }
-    
+
             MatchData theMatch = null;
             PersistenceManager pm = Persistence.getPersistenceManager();
             try {
@@ -118,20 +132,20 @@ public class GGP_SpectatorServlet extends HttpServlet {
                 pm.close();
             }
 
-            // Respond to the match host as soon as possible.
+            // Respond to the match host with the key.
             resp.getWriter().println(theMatch.getMatchKey());
             resp.getWriter().close();
-
-            // Ping the channel clients and the PuSH hub.
-            AtomKeyFeed.addRecentMatchKey("updatedFeed", theMatch.getMatchKey());
-            PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/feeds/updatedFeed.atom");
-            PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");
+            
+            // Add background tasks to ping the PuSH hubs.
+            AtomKeyFeed.addRecentMatchKey("updatedFeed", theMatch.getMatchKey());            
+            addTaskToPingHub("http://matches.ggp.org/matches/feeds/updatedFeed.atom");
+            addTaskToPingHub("http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/feed.atom");
 
             // When the match is completed, update that feed and ping the PuSH hub.
             try {
                 if (theMatchJSON.has("isCompleted") && theMatchJSON.getBoolean("isCompleted")) {
                     AtomKeyFeed.addRecentMatchKey("completedFeed", theMatch.getMatchKey());
-                    PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", "http://matches.ggp.org/matches/feeds/completedFeed.atom");
+                    addTaskToPingHub("http://matches.ggp.org/matches/feeds/completedFeed.atom");
                 }
             } catch (JSONException e) {
                 throw new RuntimeException(e);
