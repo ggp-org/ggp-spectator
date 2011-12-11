@@ -54,5 +54,23 @@
       <name human="Entity Kind to Map Over">mapreduce.mapper.inputformat.datastoreinputformat.entitykind</name>
       <value template="optional">MatchData</value>
     </property>
+  </configuration>
+  <configuration name="AdjustmentMapper">
+    <property>
+      <name>mapreduce.map.class</name>
+      <value>ggp.spectator.mapreduce.AdjustmentMapper</value>
+    </property>
+    <property>
+      <name>mapreduce.inputformat.class</name>
+      <value>com.google.appengine.tools.mapreduce.DatastoreInputFormat</value>
+    </property>
+    <property>
+      <name human="Entity Kind to Map Over">mapreduce.mapper.inputformat.datastoreinputformat.entitykind</name>
+      <value template="optional">MatchData</value>
+    </property>
+    <property>
+      <name>mapreduce.mapper.shardcount</value>
+      <value>30</value>
+    </property>
   </configuration>  
 </configurations>

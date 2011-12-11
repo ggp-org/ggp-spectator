@@ -113,7 +113,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
                     !theMatchJSON.getString("gameMetaURL").contains("//games.ggp.org/dresden")) {
                     // TODO: Make this more permissive. What's the best way to do this
                     // while still providing security for viewers?
-                    throw new MatchValidation.ValidationException("Repository not whitelisted: " + theRepository);                    
+                    throw new MatchValidation.ValidationException("Repository not whitelisted: " + theMatchJSON.getString("gameMetaURL"));                    
                 }
             } catch (JSONException e) {
                 throw new MatchValidation.ValidationException(e.toString());
