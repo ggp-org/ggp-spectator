@@ -26,7 +26,7 @@ public class PuSHPublisher {
             if (connection.getResponseCode() / 100 == 2) {
                 // OK
             } else {
-                throw new IOException(connection.getResponseMessage());
+                throw new IOException(connection.getResponseCode() + ": " + connection.getResponseMessage());
             }
         } catch (MalformedURLException e) {
             throw new IOException(e);
