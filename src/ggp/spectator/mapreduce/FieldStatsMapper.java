@@ -10,35 +10,7 @@ import org.apache.hadoop.io.NullWritable;
 
 import ggp.spectator.MatchData;
 
-import java.util.logging.Logger;
-
 public class FieldStatsMapper extends AppEngineMapper<Key, Entity, NullWritable, NullWritable> {
-  private static final Logger log = Logger.getLogger(FieldStatsMapper.class.getName());
-
-  public FieldStatsMapper() {
-      ;
-  }
-
-  @Override
-  public void taskSetup(Context context) {
-    log.warning("Doing per-task setup");
-  }
-
-  @Override
-  public void taskCleanup(Context context) {
-    log.warning("Doing per-task cleanup");
-  }
-
-  @Override
-  public void setup(Context context) {
-    log.warning("Doing per-worker setup");
-  }
-
-  @Override
-  public void cleanup(Context context) {
-    log.warning("Doing per-worker cleanup");    
-  }
-  
   public static void recordWhetherJSONHas(Context context, JSONObject theMatch, String theKey) {
       if (theMatch.has(theKey)) context.getCounter("hasField", theKey).increment(1);
       else context.getCounter("lacksField", theKey).increment(1);
@@ -48,8 +20,6 @@ public class FieldStatsMapper extends AppEngineMapper<Key, Entity, NullWritable,
   // on how often various match descriptor fields are being used.
   @Override
   public void map(Key key, Entity value, Context context) {
-    log.warning("Mapping key: " + key);
-    
     try {
         String theJSON = ((Text)value.getProperty("theMatchJSON")).getValue();
         JSONObject theMatch = new JSONObject(theJSON);

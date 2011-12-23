@@ -1,7 +1,5 @@
 package ggp.spectator.mapreduce;
 
-import ggp.spectator.MatchValidation.ValidationException;
-
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Entity;
@@ -24,9 +22,9 @@ public class AdjustmentMapper extends AppEngineMapper<Key, Entity, NullWritable,
 
           if(shouldAdjust(theMatch)) {
               try {
-                  doAdjustment(theMatch);
+                  doSignedAdjustment(theMatch);
                   DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-                  value.setProperty("theMatchJSON", new Text(theJSON.toString()));
+                  value.setProperty("theMatchJSON", new Text(theMatch.toString()));
                   datastore.put(value);
                   context.getCounter("Overall", "Adjusted").increment(1);
               } catch (Exception e) {
@@ -45,8 +43,8 @@ public class AdjustmentMapper extends AppEngineMapper<Key, Entity, NullWritable,
       return false;
   }
   
-  public static void doAdjustment(JSONObject theMatchJSON) throws ValidationException, JSONException {
-      // TODO: Fill this in!
+  public static void doSignedAdjustment(JSONObject theMatchJSON) throws JSONException {
+      doAdjustment(theMatchJSON);
       
       // Once we've made the adjustment, we need to re-sign the match. Note this can only be done
       // for matches for which we have the host's private signing keys.
@@ -60,7 +58,12 @@ public class AdjustmentMapper extends AppEngineMapper<Key, Entity, NullWritable,
       }
   }
   
+  public static void doAdjustment(JSONObject theMatchJSON) throws JSONException {      
+      // TODO: Fill this in!      
+  }
+  
   public static String getSK(String thePK) {
+      // TODO: Fill this in!      
       return null;
   }
 }

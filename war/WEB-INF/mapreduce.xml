@@ -69,7 +69,7 @@
       <value template="optional">MatchData</value>
     </property>
     <property>
-      <name>mapreduce.mapper.shardcount</value>
+      <name>mapreduce.mapper.shardcount</name>
       <value>30</value>
     </property>
   </configuration>  
