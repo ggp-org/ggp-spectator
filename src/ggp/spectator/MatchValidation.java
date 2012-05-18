@@ -9,9 +9,9 @@ import util.symbol.factory.SymbolFactory;
 import util.symbol.factory.exceptions.SymbolFormatException;
 import util.symbol.grammar.SymbolList;
 
-import com.google.appengine.repackaged.org.json.JSONArray;
-import com.google.appengine.repackaged.org.json.JSONException;
-import com.google.appengine.repackaged.org.json.JSONObject;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MatchValidation {
     // =======================================================================
