@@ -81,8 +81,9 @@ public class GGP_SpectatorServlet extends HttpServlet {
         }
     }
     
+    private final static int PING_RETRIES = 10;
     private static void addTaskToPingHub(String theFeedURL) {
-        QueueFactory.getDefaultQueue().add(withUrl("/tasks/ping_hub").method(Method.POST).param("feedURL", theFeedURL).retryOptions(withTaskRetryLimit(6)));
+        QueueFactory.getDefaultQueue().add(withUrl("/tasks/ping_hub").method(Method.POST).param("feedURL", theFeedURL).retryOptions(withTaskRetryLimit(PING_RETRIES)));
     }
 
     public void doPost(HttpServletRequest req, HttpServletResponse resp)
@@ -93,8 +94,21 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.setHeader("Access-Control-Allow-Age", "86400");            
         
         if (req.getRequestURI().equals("/tasks/ping_hub")) {
+        	int nRetryAttempt = Integer.parseInt(req.getHeader("X-AppEngine-TaskRetryCount"));
             String theFeedURL = req.getParameter("feedURL");
-            PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", theFeedURL);
+            try {
+            	PuSHPublisher.pingHub("http://pubsubhubbub.appspot.com/", theFeedURL);
+            	resp.setStatus(200);
+            } catch (Exception e) {
+            	resp.setStatus(503);
+        		// For the first few exceptions, silently issue errors to task queue to trigger retries.
+        		// After a few retries, start surfacing the exceptions, since they're clearly not transient.
+            	// This reduces the amount of noise in the error logs caused by transient PuSH hub errors.
+            	if (nRetryAttempt > PING_RETRIES - 3) {
+            		throw new RuntimeException(e);
+            	}
+            }            
+            return;
         }
         
         String theURL = req.getRequestURI();
