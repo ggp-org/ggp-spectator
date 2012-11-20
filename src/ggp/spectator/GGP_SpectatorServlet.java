@@ -7,7 +7,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLEncoder;
 
 import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
@@ -17,8 +16,6 @@ import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.appengine.api.taskqueue.TaskOptions.Method;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import util.configuration.RemoteResourceLoader;
 
 @SuppressWarnings("serial")
 public class GGP_SpectatorServlet extends HttpServlet {
@@ -175,7 +172,8 @@ public class GGP_SpectatorServlet extends HttpServlet {
             }
             
             // Also manually ping the database server, in case PuSH is misbehaving.
-            RemoteResourceLoader.loadJSON("http://database.ggp.org/ingest_match?matchURL="+URLEncoder.encode("http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/", "UTF-8"));
+            // TODO(schreib): Add this manual ping back in if we're seeing match updates being dropped.
+            // RemoteResourceLoader.loadJSON("http://database.ggp.org/ingest_match?matchURL="+URLEncoder.encode("http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/", "UTF-8"));
         } catch (MatchValidation.ValidationException ve) {
             // For now, we want to pass up any MatchValidation exceptions all the way to the top,
             // so they appear in the server logs and can be acted upon quickly.
