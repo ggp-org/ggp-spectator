@@ -15,6 +15,8 @@ import javax.servlet.http.*;
 
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.appengine.api.taskqueue.TaskOptions.Method;
+import com.prodeagle.java.counters.Counter;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -29,6 +31,8 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.setHeader("Access-Control-Allow-Headers", "*");
         resp.setHeader("Access-Control-Allow-Age", "86400");            
 
+        Counter.increment("Spectator.Requests.Get");
+        
         // Get the requested URL, and make sure that it starts with
         // the expected "/matches/" prefix.
         String theURL = req.getRequestURI();
@@ -91,7 +95,9 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.setHeader("Access-Control-Allow-Origin", "*");
         resp.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
         resp.setHeader("Access-Control-Allow-Headers", "*");
-        resp.setHeader("Access-Control-Allow-Age", "86400");            
+        resp.setHeader("Access-Control-Allow-Age", "86400");
+        
+        Counter.increment("Spectator.Requests.Post");
         
         if (req.getRequestURI().equals("/tasks/ping_hub")) {
         	int nRetryAttempt = Integer.parseInt(req.getHeader("X-AppEngine-TaskRetryCount"));
@@ -115,6 +121,8 @@ public class GGP_SpectatorServlet extends HttpServlet {
         if(!theURL.equals("/"))
             return;
 
+        Counter.increment("Spectator.Matches.Posted");
+        
         try {
             JSONObject theMatchJSON;
             String theAuthToken = req.getParameter("AUTH");
@@ -147,17 +155,19 @@ public class GGP_SpectatorServlet extends HttpServlet {
                 MatchValidation.performInternalConsistencyChecks(theMatchJSON);
                 theMatch.setMatchJSON(theMatchJSON);
                 pm.makePersistent(theMatch);
+                Counter.increment("Spectator.Matches.Posted.Updated");
             } catch(JDOObjectNotFoundException e) {
                 MatchValidation.performCreationValidationChecks(theMatchJSON);
                 MatchValidation.performInternalConsistencyChecks(theMatchJSON);
                 theMatch = new MatchData(theMatchJSON, theAuthToken);;
+                Counter.increment("Spectator.Matches.Posted.New");
             } finally {
                 pm.close();
             }
 
             // Respond to the match host with the key.
             resp.getWriter().println(theMatch.getMatchKey());
-            resp.getWriter().close();
+            resp.getWriter().close();            
             
             // Add background tasks to ping the PuSH hubs.
             AtomKeyFeed.addRecentMatchKey("updatedFeed", theMatch.getMatchKey());            
@@ -169,18 +179,22 @@ public class GGP_SpectatorServlet extends HttpServlet {
                 if (theMatchJSON.has("isCompleted") && theMatchJSON.getBoolean("isCompleted")) {
                     AtomKeyFeed.addRecentMatchKey("completedFeed", theMatch.getMatchKey());
                     addTaskToPingHub("http://matches.ggp.org/matches/feeds/completedFeed.atom");
+                    Counter.increment("Spectator.Matches.Posted.Completed");
                 }
             } catch (JSONException e) {
                 throw new RuntimeException(e);
             }
             
+            Counter.increment("Spectator.Matches.Posted.Good");
+            
             // Also manually ping the database server, in case PuSH is misbehaving.
             // TODO(schreib): Remove this manual ping eventually, to test relying entirely on PuSH.
             RemoteResourceLoader.loadJSON("http://database.ggp.org/ingest_match?matchURL="+URLEncoder.encode("http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/", "UTF-8"));
-        } catch (MatchValidation.ValidationException ve) {
+        } catch (MatchValidation.ValidationException ve) {        	
             // For now, we want to pass up any MatchValidation exceptions all the way to the top,
             // so they appear in the server logs and can be acted upon quickly.
-            throw new RuntimeException(ve);            
+        	Counter.increment("Spectator.Matches.Posted.Invalid");
+            throw new RuntimeException(ve);
         }
     }
     
