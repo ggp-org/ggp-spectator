@@ -17,10 +17,9 @@ import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.appengine.api.taskqueue.TaskOptions.Method;
 import com.prodeagle.java.counters.Counter;
 
+import org.ggp.shared.loader.RemoteResourceLoader;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import util.configuration.RemoteResourceLoader;
 
 @SuppressWarnings("serial")
 public class GGP_SpectatorServlet extends HttpServlet {

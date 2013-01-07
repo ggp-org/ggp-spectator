@@ -4,11 +4,10 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-import util.crypto.SignableJSON;
-import util.symbol.factory.SymbolFactory;
-import util.symbol.factory.exceptions.SymbolFormatException;
-import util.symbol.grammar.SymbolList;
-
+import org.ggp.shared.crypto.SignableJSON;
+import org.ggp.shared.symbol.factory.SymbolFactory;
+import org.ggp.shared.symbol.factory.exceptions.SymbolFormatException;
+import org.ggp.shared.symbol.grammar.SymbolList;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
