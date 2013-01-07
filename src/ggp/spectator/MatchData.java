@@ -17,6 +17,8 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.annotations.*;
 
 import com.google.appengine.api.datastore.Text;
+
+import org.ggp.shared.persistence.Persistence;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
