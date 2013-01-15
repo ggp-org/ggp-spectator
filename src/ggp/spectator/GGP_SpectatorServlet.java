@@ -113,6 +113,12 @@ public class GGP_SpectatorServlet extends HttpServlet {
             	if (nRetryAttempt > PING_RETRIES - 3) {
             		throw new RuntimeException(e);
             	}
+            	// Wait a little time, in case that helps.
+            	try {
+            		Thread.sleep(1000);
+            	} catch (InterruptedException ie) {
+            		;
+            	}
             }            
             return;
         }
