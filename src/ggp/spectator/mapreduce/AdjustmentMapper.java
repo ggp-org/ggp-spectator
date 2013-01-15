@@ -6,7 +6,7 @@ import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
 
-import org.ggp.shared.crypto.SignableJSON;
+import org.ggp.galaxy.shared.crypto.SignableJSON;
 import org.json.JSONException;
 import org.json.JSONObject;
 import com.google.appengine.tools.mapreduce.AppEngineMapper;

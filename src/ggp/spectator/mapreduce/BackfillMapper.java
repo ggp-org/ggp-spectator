@@ -5,7 +5,7 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.tools.mapreduce.AppEngineMapper;
 
 import org.apache.hadoop.io.NullWritable;
-import org.ggp.shared.loader.RemoteResourceLoader;
+import org.ggp.galaxy.shared.loader.RemoteResourceLoader;
 
 import java.util.logging.Logger;
 
