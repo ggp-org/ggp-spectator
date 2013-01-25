@@ -52,12 +52,12 @@ public class MatchValidation {
             verifyEquals(oldMatchJSON, newMatchJSON, "gameMetaURL");
             verifyEquals(oldMatchJSON, newMatchJSON, "gameName");
             verifyEquals(oldMatchJSON, newMatchJSON, "gameRulesheetHash");
-            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "gameRoleNames", false, false);
-            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "playerNamesFromHost", false, false);
-            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "moves", true, false);
-            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "errors", true, false);
-            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "states", true, true);
-            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "stateTimes", true, false);            
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "gameRoleNames", false, false, false);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "playerNamesFromHost", false, false, true);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "moves", true, false, false);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "errors", true, false, false);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "states", true, true, false);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "stateTimes", true, false, false);
 
             if (oldMatchJSON.has("isCompleted") && newMatchJSON.has("isCompleted") && oldMatchJSON.getBoolean("isCompleted") && !newMatchJSON.getBoolean("isCompleted")) {
                 throw new ValidationException("Cannot transition from completed to not-completed.");
@@ -188,7 +188,7 @@ public class MatchValidation {
         }
     }
 
-    public static void verifyOptionalArraysEqual(JSONObject old, JSONObject newer, String arr, boolean arrayCanExpand, boolean compareElementsAsSymbolSets) throws JSONException, ValidationException {
+    public static void verifyOptionalArraysEqual(JSONObject old, JSONObject newer, String arr, boolean arrayCanExpand, boolean compareElementsAsSymbolSets, boolean allowEmptyToNonempty) throws JSONException, ValidationException {
         if (!old.has(arr) && !newer.has(arr)) return;
         if (old.has(arr) && !newer.has(arr)) throw new ValidationException("Array " + arr + " missing from new, present in old.");
         if (!old.has(arr) && newer.has(arr)) return; // okay for the array to appear mid-way through the game
@@ -214,7 +214,11 @@ public class MatchValidation {
                     if(!oldArr.getJSONArray(i).toString().equals(newArr.getJSONArray(i).toString()))
                         throw new ValidationException("Array " + arr + " has internal disagreement between new [" + newArr.get(i) + "] and old [" + oldArr.get(i) + "] at element " + i + ".");
                 } else if (!oldArr.get(i).equals(newArr.get(i))) {
-                    throw new ValidationException("Array " + arr + " has disagreement between new [" + newArr.get(i) + "] and old [" + oldArr.get(i) + "] at element " + i + ".");
+                	if (allowEmptyToNonempty && oldArr.get(i).toString().isEmpty() && !newArr.get(i).toString().isEmpty()) {
+                		// Value changed, but the old value was empty and the new value isn't, and we're allowing that
+                	} else {
+                		throw new ValidationException("Array " + arr + " has disagreement between new [" + newArr.get(i) + "] and old [" + oldArr.get(i) + "] at element " + i + ".");
+                	}
                 }
             }
         }
