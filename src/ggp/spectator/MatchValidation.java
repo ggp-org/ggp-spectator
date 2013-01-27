@@ -53,7 +53,8 @@ public class MatchValidation {
             verifyEquals(oldMatchJSON, newMatchJSON, "gameName");
             verifyEquals(oldMatchJSON, newMatchJSON, "gameRulesheetHash");
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "gameRoleNames", false, false, false);
-            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "playerNamesFromHost", false, false, true);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "isPlayerHuman", false, false, false);
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "playerNamesFromHost", false, false, true);            
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "moves", true, false, false);
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "errors", true, false, false);
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "states", true, true, false);
