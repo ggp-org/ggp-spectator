@@ -3,8 +3,6 @@ package ggp.spectator;
 import static com.google.appengine.api.taskqueue.RetryOptions.Builder.withTaskRetryLimit;
 import static com.google.appengine.api.taskqueue.TaskOptions.Builder.withUrl;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -36,13 +34,10 @@ public class GGP_SpectatorServlet extends HttpServlet {
         // Get the requested URL, and make sure that it starts with
         // the expected "/matches/" prefix.
         String theURL = req.getRequestURI();
-        resp.setContentType(getContentType(theURL));
         if (theURL.startsWith("/matches/feeds/")) {
-            handleFeed(resp, theURL.substring("/matches/feeds/".length()));
+        	doGetFeed( theURL.substring("/matches/feeds/".length()), resp);
             return;
         } else if(!theURL.startsWith("/matches/")) {
-            // TODO: Add a proper splash page, etc. For now, we reject any URL
-            // that doesn't begin with /matches/.
             resp.setStatus(404);
             return;
         }
@@ -53,18 +48,10 @@ public class GGP_SpectatorServlet extends HttpServlet {
             theURL = theURL.substring(0, theURL.length()-1);
         }
         if(theURL.trim().length() == 0) {
-            // Currently no content at "/matches/" right now.
+            // No content at "/matches/".
             resp.setStatus(404);
             return;
         }
-        
-        // If they want a match visualization page, provide that without
-        // needing to look up the match key or anything, since it'll be
-        // available via the "." relative path.
-        if(theURL.endsWith("/viz.html")) {
-            writeStaticPage(resp, "MatchPage.html");
-            return;
-        }        
 
         boolean showFeedView = false;
         if(theURL.endsWith("/feed.atom")) {
@@ -79,10 +66,35 @@ public class GGP_SpectatorServlet extends HttpServlet {
         }
         
         if (showFeedView) {
+        	resp.setContentType("application/atom+xml");
             resp.getWriter().println(theMatch.getAtomFeed());
         } else {
+        	resp.setContentType("text/javascript");
             resp.getWriter().println(theMatch.getMatchJSON());
         }
+    }
+    
+    private void doGetFeed(String theFeedKey, HttpServletResponse resp) throws IOException {
+        if (theFeedKey.isEmpty()) {
+            resp.setStatus(400);
+            resp.getWriter().close();
+            return;
+        }
+        String theFeed = null;
+        if (theFeedKey.endsWith(".atom")) {
+            theFeed = AtomKeyFeed.getAtomFeed(theFeedKey.replace(".atom", ""));
+            resp.setContentType("application/atom+xml");
+        } else if (theFeedKey.endsWith(".json")) {
+            theFeed = AtomKeyFeed.getJsonFeed(theFeedKey.replace(".json", ""));
+            resp.setContentType("text/javascript");
+        }
+        if (theFeed == null) {
+            resp.setStatus(404);
+        } else {
+            resp.setStatus(200);
+            resp.getWriter().println(theFeed);            
+        }
+        resp.getWriter().close();
     }
     
     private final static int PING_RETRIES = 10;
@@ -203,76 +215,11 @@ public class GGP_SpectatorServlet extends HttpServlet {
             throw new RuntimeException(ve);
         }
     }
-    
+
     public void doOptions(HttpServletRequest req, HttpServletResponse resp) throws IOException {  
         resp.setHeader("Access-Control-Allow-Origin", "*");
         resp.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
         resp.setHeader("Access-Control-Allow-Headers", "*");
         resp.setHeader("Access-Control-Allow-Age", "86400");    
-    }
-
-    private void handleFeed(HttpServletResponse resp, String theFeedKey) throws IOException {
-        if (theFeedKey.isEmpty()) {
-            resp.setStatus(400);
-            resp.getWriter().close();
-            return;
-        }
-        String theFeed = null;
-        if (theFeedKey.endsWith(".atom")) {
-            theFeed = AtomKeyFeed.getAtomFeed(theFeedKey.replace(".atom", ""));
-            resp.setContentType("application/atom+xml");
-        } else if (theFeedKey.endsWith(".json")) {
-            theFeed = AtomKeyFeed.getJsonFeed(theFeedKey.replace(".json", ""));
-            resp.setContentType("text/javascript");
-        }
-        if (theFeed == null) {
-            resp.setStatus(404);
-        } else {
-            resp.setStatus(200);
-            resp.getWriter().println(theFeed);            
-        }
-        resp.getWriter().close();
-    }
-    
-    // ========================================================================
-    // Generically useful utility functions.
-
-    private static String getContentType(String theURL) {
-        if (theURL.endsWith(".xml")) {
-            return "application/xml";
-        } else if (theURL.endsWith(".xsl")) {
-            return "application/xml";
-        } else if (theURL.endsWith(".js")) {
-            return "text/javascript";   
-        } else if (theURL.endsWith(".json")) {
-            return "text/javascript";
-        } else if (theURL.endsWith(".html")) {
-            return "text/html";
-        } else if (theURL.endsWith(".png")) {
-            return "image/png";
-        } else if (theURL.endsWith(".atom")) {
-            return "application/atom+xml";
-        } else {
-            if (theURL.equals("/")) {
-                return "text/html";
-            } else if (theURL.endsWith("/")) {
-                return "text/javascript";
-            }
-            return "text/plain";
-        }
-    }
-    
-    public void writeStaticPage(HttpServletResponse resp, String thePage) throws IOException {
-        FileReader fr = new FileReader("root/" + thePage);
-        BufferedReader br = new BufferedReader(fr);
-        StringBuffer response = new StringBuffer();
-        
-        String line;
-        while( (line = br.readLine()) != null ) {
-            response.append(line + "\n");
-        }
-        
-        resp.setContentType("text/html");
-        resp.getWriter().println(response.toString());
     }
 }
