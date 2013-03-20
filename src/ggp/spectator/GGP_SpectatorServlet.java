@@ -97,7 +97,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.getWriter().close();
     }
     
-    private final static int PING_RETRIES = 10;
+    private final static int PING_RETRIES = 30;
     private static void addTaskToPingHub(String theFeedURL) {
         QueueFactory.getDefaultQueue().add(withUrl("/tasks/ping_hub").method(Method.POST).param("feedURL", theFeedURL).retryOptions(withTaskRetryLimit(PING_RETRIES)));
     }
@@ -127,7 +127,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
             	}
             	// Wait a little time, in case that helps.
             	try {
-            		Thread.sleep(1000);
+            		Thread.sleep(2000);
             	} catch (InterruptedException ie) {
             		;
             	}
