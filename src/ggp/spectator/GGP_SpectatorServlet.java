@@ -208,7 +208,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
             
             // Also manually ping the database server, in case PuSH is misbehaving.
             // TODO(schreib): Remove this manual ping eventually, to test relying entirely on PuSH.
-            RemoteResourceLoader.loadJSON("http://database.ggp.org/ingest_match?matchURL="+URLEncoder.encode("http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/", "UTF-8"));
+            RemoteResourceLoader.loadRaw("http://database.ggp.org/ingest_match?matchURL="+URLEncoder.encode("http://matches.ggp.org/matches/" + theMatch.getMatchKey() + "/", "UTF-8"));
         } catch (MatchValidation.ValidationException ve) {        	
             // For now, we want to pass up any MatchValidation exceptions all the way to the top,
             // so they appear in the server logs and can be acted upon quickly.
