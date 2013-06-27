@@ -8,8 +8,6 @@ import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Formatter;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.TimeZone;
 
 import javax.jdo.JDOObjectNotFoundException;
@@ -30,14 +28,11 @@ public class MatchData {
     @Persistent private Text theMatchJSON;
     @Persistent private Date lastUpdated;
 
-    @Deprecated @Persistent private Set<String> theClientIDs;
-
     public MatchData(JSONObject theMatchJSON, String authToken) throws IOException {
         this.matchKey = getNewKeyForJSON(theMatchJSON);
         this.theMatchJSON = new Text(theMatchJSON.toString());
         this.lastUpdated = new Date();
         this.theAuthToken = authToken;        
-        this.theClientIDs = new HashSet<String>();
         
         if (matchKey.length() > 0) {
             PersistenceManager pm = Persistence.getPersistenceManager();
@@ -46,15 +41,9 @@ public class MatchData {
         }
     }
     
-    public int numClientIDs() {
-        if (theClientIDs == null) return 0;
-        return theClientIDs.size();
-    }    
-    
     public void setMatchJSON(JSONObject theNewJSON) {
         this.theMatchJSON = new Text(theNewJSON.toString());
         this.lastUpdated = new Date();
-        this.theClientIDs = null;
     }
 
     public JSONObject getMatchJSON() {

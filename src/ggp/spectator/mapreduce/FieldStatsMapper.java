@@ -8,8 +8,6 @@ import com.google.appengine.tools.mapreduce.AppEngineMapper;
 
 import org.apache.hadoop.io.NullWritable;
 
-import ggp.spectator.MatchData;
-
 public class FieldStatsMapper extends AppEngineMapper<Key, Entity, NullWritable, NullWritable> {
   public static void recordWhetherJSONHas(Context context, JSONObject theMatch, String theKey) {
       if (theMatch.has(theKey)) context.getCounter("hasField", theKey).increment(1);
@@ -24,14 +22,6 @@ public class FieldStatsMapper extends AppEngineMapper<Key, Entity, NullWritable,
         String theJSON = ((Text)value.getProperty("theMatchJSON")).getValue();
         JSONObject theMatch = new JSONObject(theJSON);
 
-        int nClientIDs = 0;
-        try {            
-            MatchData m = MatchData.loadMatchData(key.getName());
-            nClientIDs = m.numClientIDs();
-        } catch (Exception q) {
-            context.getCounter("clientIDs", "Unparseable").increment(1);            
-        }
-        
         recordWhetherJSONHas(context, theMatch, "matchId");
         recordWhetherJSONHas(context, theMatch, "startTime");
         recordWhetherJSONHas(context, theMatch, "randomToken");
@@ -58,14 +48,11 @@ public class FieldStatsMapper extends AppEngineMapper<Key, Entity, NullWritable,
             boolean isCompleted = theMatch.getBoolean("isCompleted");
             if (isCompleted) {
                 context.getCounter("isCompleted", "Yes").increment(1);
-                context.getCounter("clientIDs", "forCompletedMatches").increment(nClientIDs);
             } else {
                 context.getCounter("isCompleted", "No").increment(1);
-                context.getCounter("clientIDs", "forOngoingMatches").increment(nClientIDs);
             }
         } catch (Exception e2) {
             context.getCounter("isCompleted", "forIndeterminateMatches").increment(1);
-            context.getCounter("clientIDs", "Unknown").increment(nClientIDs);
         }
         
         context.getCounter("Overall", "Readable").increment(1);
