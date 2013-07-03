@@ -6,6 +6,7 @@ import static com.google.appengine.api.taskqueue.TaskOptions.Builder.withUrl;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.logging.Logger;
 
 import javax.jdo.JDOObjectNotFoundException;
 import javax.jdo.PersistenceManager;
@@ -170,8 +171,15 @@ public class GGP_SpectatorServlet extends HttpServlet {
                 if (!theMatch.getAuthToken().equals(theAuthToken)) {
                     throw new MatchValidation.ValidationException("Unauthorized auth token used to update match.");
                 }
-                MatchValidation.performUpdateValidationChecks(theMatch.getMatchJSON(), theMatchJSON);
                 MatchValidation.performInternalConsistencyChecks(theMatchJSON);
+               	MatchValidation.performUpdateInvariantValidationChecks(theMatch.getMatchJSON(), theMatchJSON);
+               	try {
+               		MatchValidation.performUpdateForwardValidationChecks(theMatch.getMatchJSON(), theMatchJSON);
+               	} catch (MatchValidation.ValidationException mve) {
+               		Logger.getAnonymousLogger().severe("Got forward validation exception: " + mve + " for match " + theMatch.getMatchKey() + ". Discarding update and pretending that it was published successfully.");
+               		Counter.increment("Spectator.Matches.Posted.Discarded");
+               		return;
+               	}
                 theMatch.setMatchJSON(theMatchJSON);
                 pm.makePersistent(theMatch);
                 Counter.increment("Spectator.Matches.Posted.Updated");

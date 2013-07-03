@@ -41,7 +41,8 @@ public class MatchValidation {
         }
     }
     
-    public static void performUpdateValidationChecks(JSONObject oldMatchJSON, JSONObject newMatchJSON) throws ValidationException {
+    // These fields must remain unchanged when comparing any two versions of the same match.
+    public static void performUpdateInvariantValidationChecks(JSONObject oldMatchJSON, JSONObject newMatchJSON) throws ValidationException {
         try {
             verifyEquals(oldMatchJSON, newMatchJSON, "matchId");
             verifyEquals(oldMatchJSON, newMatchJSON, "startTime");
@@ -52,6 +53,14 @@ public class MatchValidation {
             verifyEquals(oldMatchJSON, newMatchJSON, "gameMetaURL");
             verifyEquals(oldMatchJSON, newMatchJSON, "gameName");
             verifyEquals(oldMatchJSON, newMatchJSON, "gameRulesheetHash");
+        } catch(JSONException e) {
+            throw new ValidationException("Could not parse JSON: " + e.toString());
+        }
+    }
+
+    // These fields only go in one direction: they're append-only, essentially.
+    public static void performUpdateForwardValidationChecks(JSONObject oldMatchJSON, JSONObject newMatchJSON) throws ValidationException {
+        try {
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "gameRoleNames", false, false, false);
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "isPlayerHuman", false, false, false);
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "playerNamesFromHost", false, false, true);            
@@ -59,7 +68,6 @@ public class MatchValidation {
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "errors", true, false, false);
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "states", true, true, false);
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "stateTimes", true, false, false);
-
             if (oldMatchJSON.has("isCompleted") && newMatchJSON.has("isCompleted") && oldMatchJSON.getBoolean("isCompleted") && !newMatchJSON.getBoolean("isCompleted")) {
                 throw new ValidationException("Cannot transition from completed to not-completed.");
             }            
