@@ -78,6 +78,7 @@ public class MatchValidation {
     
     public static void performInternalConsistencyChecks(JSONObject theMatchJSON) throws ValidationException {
         try {
+        	verifyNoNulls(theMatchJSON, "theMatchJSON");
             verifyHas(theMatchJSON, "matchId");
             verifyHas(theMatchJSON, "startTime");
             verifyHas(theMatchJSON, "randomToken");
@@ -125,7 +126,7 @@ public class MatchValidation {
                 if (theMatchJSON.has("playerNamesFromHost")) {
                     if (theMatchJSON.getJSONArray("playerNamesFromHost").length() != nPlayers) {
                         throw new ValidationException("Moves array starts with " + nPlayers + " players, but playerNamesFromHost array has " + theMatchJSON.getJSONArray("playerNamesFromHost").length() + " players. Inconsistent!");
-                    }                    
+                    }
                 }
             }
             if (theMatchJSON.has("errors")) {
@@ -173,6 +174,33 @@ public class MatchValidation {
         } catch(JSONException e) {
             throw new ValidationException("Could not parse JSON: " + e.toString());
         }
+    }
+    
+    public static void verifyNoNulls(Object o, String objName) throws JSONException, ValidationException {
+    	if (o instanceof Boolean) {
+    		;
+    	} else if (o instanceof Number) {
+    		;
+    	} else if (o instanceof String) {
+    		;
+    	} else if (o == JSONObject.NULL) {
+    		throw new ValidationException("Found an unexpected null value in field " + objName);
+    	} else if (o instanceof JSONObject) {
+            for (String key : JSONObject.getNames(o)) {
+            	if (key.equals("NULL")) continue;
+            	if (((JSONObject) o).isNull(key)) {
+            		throw new ValidationException("Found null value for field " + key + " in object " + objName);
+            	}
+            	verifyNoNulls(((JSONObject) o).get(key), key);
+            }
+    	} else if (o instanceof JSONArray) {
+            for (int i = 0; i < ((JSONArray) o).length(); i++) {
+            	if (((JSONArray) o).isNull(i)) {
+            		throw new ValidationException("Found null value for element " + i + " in array " + objName);
+            	}
+            	verifyNoNulls(((JSONArray) o).get(i), objName);
+            }    		
+    	}
     }
 
     public static void verifyReasonableTime(long theTime) throws ValidationException {

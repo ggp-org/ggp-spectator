@@ -6,6 +6,7 @@ import static com.google.appengine.api.taskqueue.TaskOptions.Builder.withUrl;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.jdo.JDOObjectNotFoundException;
@@ -221,6 +222,7 @@ public class GGP_SpectatorServlet extends HttpServlet {
             // For now, we want to pass up any MatchValidation exceptions all the way to the top,
             // so they appear in the server logs and can be acted upon quickly.
         	Counter.increment("Spectator.Matches.Posted.Invalid");
+        	Logger.getAnonymousLogger().log(Level.SEVERE, "Got validation error " + ve.toString() + " when processing DATA: " + req.getParameter("DATA"));
             throw new RuntimeException(ve);
         }
     }
