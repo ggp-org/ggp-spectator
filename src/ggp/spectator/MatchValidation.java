@@ -17,14 +17,14 @@ public class MatchValidation {
     // Validation checks, to make sure bad information is not published to the
     // spectator server by a malicious adversary or malfunctioning system. These
     // are not comprehensive, but are intended to provide basic sanity guarantees
-    // so that we aren't storing total nonsense in the spectator server.    
+    // so that we aren't storing total nonsense in the spectator server.
     @SuppressWarnings("serial")
     public static class ValidationException extends IOException {
         public ValidationException(String x) {
             super(x);
         }
     }
-    
+
     public static void performCreationValidationChecks(JSONObject newMatchJSON) throws ValidationException {
         try {
             verifyReasonableTime(newMatchJSON.getLong("startTime"));
@@ -40,7 +40,7 @@ public class MatchValidation {
             throw new ValidationException("Could not parse JSON: " + e.toString());
         }
     }
-    
+
     // These fields must remain unchanged when comparing any two versions of the same match.
     public static void performUpdateInvariantValidationChecks(JSONObject oldMatchJSON, JSONObject newMatchJSON) throws ValidationException {
         try {
@@ -49,7 +49,7 @@ public class MatchValidation {
             verifyEquals(oldMatchJSON, newMatchJSON, "randomToken");
             verifyEquals(oldMatchJSON, newMatchJSON, "matchHostPK");
             verifyEquals(oldMatchJSON, newMatchJSON, "startClock");
-            verifyEquals(oldMatchJSON, newMatchJSON, "playClock");                
+            verifyEquals(oldMatchJSON, newMatchJSON, "playClock");
             verifyEquals(oldMatchJSON, newMatchJSON, "gameMetaURL");
             verifyEquals(oldMatchJSON, newMatchJSON, "gameName");
             verifyEquals(oldMatchJSON, newMatchJSON, "gameRulesheetHash");
@@ -63,19 +63,19 @@ public class MatchValidation {
         try {
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "gameRoleNames", false, false, false);
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "isPlayerHuman", false, false, false);
-            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "playerNamesFromHost", false, false, true);            
+            verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "playerNamesFromHost", false, false, true);
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "moves", true, false, false);
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "errors", true, false, false);
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "states", true, true, false);
             verifyOptionalArraysEqual(oldMatchJSON, newMatchJSON, "stateTimes", true, false, false);
             if (oldMatchJSON.has("isCompleted") && newMatchJSON.has("isCompleted") && oldMatchJSON.getBoolean("isCompleted") && !newMatchJSON.getBoolean("isCompleted")) {
                 throw new ValidationException("Cannot transition from completed to not-completed.");
-            }            
+            }
         } catch(JSONException e) {
             throw new ValidationException("Could not parse JSON: " + e.toString());
         }
     }
-    
+
     public static void performInternalConsistencyChecks(JSONObject theMatchJSON) throws ValidationException {
         try {
         	verifyNoNulls(theMatchJSON, "theMatchJSON");
@@ -88,10 +88,10 @@ public class MatchValidation {
             verifyHas(theMatchJSON, "moves");
             verifyHas(theMatchJSON, "stateTimes");
             verifyHas(theMatchJSON, "gameMetaURL");
-            
+
             try {
                 String theGameURL = theMatchJSON.getString("gameMetaURL");
-                String theSuffix = theGameURL.substring(theGameURL.lastIndexOf("/v"));                
+                String theSuffix = theGameURL.substring(theGameURL.lastIndexOf("/v"));
                 Integer.parseInt(theSuffix.substring(2, theSuffix.length()-1));
             } catch (NumberFormatException nfe) {
                 throw new ValidationException("gameMetaURL is not properly version-qualified.");
@@ -99,7 +99,7 @@ public class MatchValidation {
                 throw new ValidationException("gameMetaURL is not properly version-qualified.");
             }
 
-            int movesLength = theMatchJSON.getJSONArray("moves").length();            
+            int movesLength = theMatchJSON.getJSONArray("moves").length();
             int statesLength = theMatchJSON.getJSONArray("states").length();
             int stateTimesLength = theMatchJSON.getJSONArray("stateTimes").length();
             if (statesLength != stateTimesLength) {
@@ -114,6 +114,7 @@ public class MatchValidation {
                     if (nPlayers != theMatchJSON.getJSONArray("moves").getJSONArray(i).length()) {
                         throw new ValidationException("Moves array starts with " + nPlayers + " players, but later has " + theMatchJSON.getJSONArray("moves").getJSONArray(i).length() + " moves. Inconsistent!");
                     }
+                    verifyStringArray(theMatchJSON.getJSONArray("moves").getJSONArray(i));
                 }
                 if (theMatchJSON.has("goalValues")) {
                     if (theMatchJSON.has("isCompleted") && !theMatchJSON.getBoolean("isCompleted")) {
@@ -139,6 +140,7 @@ public class MatchValidation {
                     if (errors.getJSONArray(i).length() != errors.getJSONArray(0).length()) {
                         throw new ValidationException("Errors array lengths are inconsistent!");
                     }
+                    verifyStringArray(errors.getJSONArray(i));
                 }
                 if (theMatchJSON.getJSONArray("moves").length() > 0) {
                     int nPlayers = theMatchJSON.getJSONArray("moves").getJSONArray(0).length();
@@ -175,7 +177,7 @@ public class MatchValidation {
             throw new ValidationException("Could not parse JSON: " + e.toString());
         }
     }
-    
+
     public static void verifyNoNulls(Object o, String objName) throws JSONException, ValidationException {
     	if (o instanceof Boolean) {
     		;
@@ -199,14 +201,28 @@ public class MatchValidation {
             		throw new ValidationException("Found null value for element " + i + " in array " + objName);
             	}
             	verifyNoNulls(((JSONArray) o).get(i), objName);
-            }    		
+            }
     	}
     }
 
     public static void verifyReasonableTime(long theTime) throws ValidationException {
         if (theTime < 0) throw new ValidationException("Time is negative!");
         if (theTime < 1200000000000L) throw new ValidationException("Time is before GGP Galaxy began.");
-        if (theTime > System.currentTimeMillis() + 604800000L) throw new ValidationException("Time is after a week from now.");        
+        if (theTime > System.currentTimeMillis() + 604800000L) throw new ValidationException("Time is after a week from now.");
+    }
+
+    public static void verifyStringArray(JSONArray arr) throws ValidationException {
+    	for (int i = 0; i < arr.length(); i++) {
+    		if (arr.optJSONArray(i) != null) {
+    			throw new ValidationException("Expecting string in array, but found JSON array: " + arr.optJSONArray(i));
+    		}
+    		if (arr.optJSONObject(i) != null) {
+    			throw new ValidationException("Expecting string in array, but found JSON object: " + arr.optJSONObject(i));
+    		}
+    		if (arr.isNull(i)) {
+    			throw new ValidationException("Expecting string in array, but found null.");
+    		}
+    	}
     }
 
     public static void verifyHas(JSONObject obj, String k) throws ValidationException {
@@ -259,8 +275,8 @@ public class MatchValidation {
                 }
             }
         }
-    }    
-    public static Set<String> verifyOptionalArraysEqual_GenerateSymbolSet(String x) {        
+    }
+    public static Set<String> verifyOptionalArraysEqual_GenerateSymbolSet(String x) {
         try {
             Set<String> y = new HashSet<String>();
             SymbolList l = (SymbolList)SymbolFactory.create(x);
@@ -268,6 +284,6 @@ public class MatchValidation {
             return y;
         } catch (SymbolFormatException q) {
             return null;
-        }        
+        }
     }
 }
