@@ -1,7 +1,9 @@
 package ggp.spectator;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.ggp.galaxy.shared.crypto.SignableJSON;
@@ -75,6 +77,13 @@ public class MatchValidation {
             throw new ValidationException("Could not parse JSON: " + e.toString());
         }
     }
+    
+    private static final Set<String> validKeys = new HashSet<String>(Arrays.asList(new String[] {
+    		"randomToken", "playerNamesFromHost", "weight", "analysisClock", "moves", "states",
+    		"scrambled", "gameName", "goalValues", "isPlayerHuman", "startTime", "playClock",
+    		"stateTimes", "gameRoleNames", "tournamentNameFromHost", "errors", "matchHostSignature",
+    		"startClock", "matchId", "gameMetaURL", "previewClock", "matchHostPK", "isAborted",
+    		"isCompleted" }));    
 
     public static void performInternalConsistencyChecks(JSONObject theMatchJSON) throws ValidationException {
         try {
@@ -88,6 +97,14 @@ public class MatchValidation {
             verifyHas(theMatchJSON, "moves");
             verifyHas(theMatchJSON, "stateTimes");
             verifyHas(theMatchJSON, "gameMetaURL");
+            
+            Iterator<?> keyIterator = theMatchJSON.keys();
+            while (keyIterator.hasNext()) {
+            	String key = keyIterator.next().toString();
+            	if (!validKeys.contains(key) && !key.startsWith("x-")) {
+            		throw new ValidationException("Unexpected key: " + key);
+            	}
+            }            
 
             try {
                 String theGameURL = theMatchJSON.getString("gameMetaURL");
