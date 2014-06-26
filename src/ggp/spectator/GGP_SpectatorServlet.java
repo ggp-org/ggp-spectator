@@ -15,7 +15,6 @@ import javax.servlet.http.*;
 
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.appengine.api.taskqueue.TaskOptions.Method;
-import com.prodeagle.java.counters.Counter;
 
 import org.ggp.galaxy.shared.loader.RemoteResourceLoader;
 import org.ggp.galaxy.shared.persistence.Persistence;
@@ -31,8 +30,6 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.setHeader("Access-Control-Allow-Headers", "*");
         resp.setHeader("Access-Control-Allow-Age", "86400");            
 
-        Counter.increment("Spectator.Requests.Get");
-        
         // Get the requested URL, and make sure that it starts with
         // the expected "/matches/" prefix.
         String theURL = req.getRequestURI();
@@ -111,8 +108,6 @@ public class GGP_SpectatorServlet extends HttpServlet {
         resp.setHeader("Access-Control-Allow-Headers", "*");
         resp.setHeader("Access-Control-Allow-Age", "86400");
         
-        Counter.increment("Spectator.Requests.Post");
-        
         if (req.getRequestURI().equals("/tasks/ping_hub")) {
         	int nRetryAttempt = Integer.parseInt(req.getHeader("X-AppEngine-TaskRetryCount"));
             String theFeedURL = req.getParameter("feedURL");
@@ -141,8 +136,6 @@ public class GGP_SpectatorServlet extends HttpServlet {
         if(!theURL.equals("/"))
             return;
 
-        Counter.increment("Spectator.Matches.Posted");
-        
         try {
             JSONObject theMatchJSON;
             String theAuthToken = req.getParameter("AUTH");
@@ -178,17 +171,14 @@ public class GGP_SpectatorServlet extends HttpServlet {
                		MatchValidation.performUpdateForwardValidationChecks(theMatch.getMatchJSON(), theMatchJSON);
                	} catch (MatchValidation.ValidationException mve) {
                		Logger.getAnonymousLogger().severe("Got forward validation exception: " + mve + " for match " + theMatch.getMatchKey() + ". Discarding update and pretending that it was published successfully.");
-               		Counter.increment("Spectator.Matches.Posted.Discarded");
                		return;
                	}
                 theMatch.setMatchJSON(theMatchJSON);
                 pm.makePersistent(theMatch);
-                Counter.increment("Spectator.Matches.Posted.Updated");
             } catch(JDOObjectNotFoundException e) {
                 MatchValidation.performCreationValidationChecks(theMatchJSON);
                 MatchValidation.performInternalConsistencyChecks(theMatchJSON);
                 theMatch = new MatchData(theMatchJSON, theAuthToken);;
-                Counter.increment("Spectator.Matches.Posted.New");
             } finally {
                 pm.close();
             }
@@ -207,13 +197,10 @@ public class GGP_SpectatorServlet extends HttpServlet {
                 if (theMatchJSON.has("isCompleted") && theMatchJSON.getBoolean("isCompleted")) {
                     AtomKeyFeed.addRecentMatchKey("completedFeed", theMatch.getMatchKey());
                     addTaskToPingHub("http://matches.ggp.org/matches/feeds/completedFeed.atom");
-                    Counter.increment("Spectator.Matches.Posted.Completed");
                 }
             } catch (JSONException e) {
                 throw new RuntimeException(e);
             }
-            
-            Counter.increment("Spectator.Matches.Posted.Good");
             
             // Also manually ping the database server, in case PuSH is misbehaving.
             // TODO(schreib): Remove this manual ping eventually, to test relying entirely on PuSH.
@@ -221,7 +208,6 @@ public class GGP_SpectatorServlet extends HttpServlet {
         } catch (MatchValidation.ValidationException ve) {        	
             // For now, we want to pass up any MatchValidation exceptions all the way to the top,
             // so they appear in the server logs and can be acted upon quickly.
-        	Counter.increment("Spectator.Matches.Posted.Invalid");
         	Logger.getAnonymousLogger().log(Level.SEVERE, "Got validation error " + ve.toString() + " when processing DATA: " + req.getParameter("DATA"));
             throw new RuntimeException(ve);
         }
