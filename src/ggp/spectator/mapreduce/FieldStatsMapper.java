@@ -3,8 +3,9 @@ package ggp.spectator.mapreduce;
 import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
-import org.json.JSONObject;
 import com.google.appengine.tools.mapreduce.AppEngineMapper;
+
+import external.JSON.JSONObject;
 
 import org.apache.hadoop.io.NullWritable;
 

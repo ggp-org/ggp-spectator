@@ -1,12 +1,12 @@
 package ggp.spectator.mapreduce;
 
+import external.JSON.JSONObject;
 import ggp.spectator.MatchValidation;
 import ggp.spectator.MatchValidation.ValidationException;
 
 import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
-import org.json.JSONObject;
 import com.google.appengine.tools.mapreduce.AppEngineMapper;
 
 import org.apache.hadoop.io.NullWritable;

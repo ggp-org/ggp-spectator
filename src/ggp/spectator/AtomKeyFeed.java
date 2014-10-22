@@ -11,9 +11,10 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.annotations.*;
 
 import org.ggp.galaxy.shared.persistence.Persistence;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+
+import external.JSON.JSONArray;
+import external.JSON.JSONException;
+import external.JSON.JSONObject;
 
 @PersistenceCapable
 public class AtomKeyFeed {

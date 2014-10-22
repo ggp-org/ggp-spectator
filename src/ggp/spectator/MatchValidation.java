@@ -6,13 +6,14 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.ggp.galaxy.shared.crypto.SignableJSON;
-import org.ggp.galaxy.shared.symbol.factory.SymbolFactory;
-import org.ggp.galaxy.shared.symbol.factory.exceptions.SymbolFormatException;
-import org.ggp.galaxy.shared.symbol.grammar.SymbolList;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
+import org.ggp.base.util.crypto.SignableJSON;
+import org.ggp.base.util.symbol.factory.SymbolFactory;
+import org.ggp.base.util.symbol.factory.exceptions.SymbolFormatException;
+import org.ggp.base.util.symbol.grammar.SymbolList;
+
+import external.JSON.JSONArray;
+import external.JSON.JSONException;
+import external.JSON.JSONObject;
 
 public class MatchValidation {
     // =======================================================================

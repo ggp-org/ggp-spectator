@@ -16,10 +16,11 @@ import javax.servlet.http.*;
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.appengine.api.taskqueue.TaskOptions.Method;
 
-import org.ggp.galaxy.shared.loader.RemoteResourceLoader;
+import external.JSON.JSONException;
+import external.JSON.JSONObject;
+
+import org.ggp.base.util.loader.RemoteResourceLoader;
 import org.ggp.galaxy.shared.persistence.Persistence;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 @SuppressWarnings("serial")
 public class GGP_SpectatorServlet extends HttpServlet {

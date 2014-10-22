@@ -5,9 +5,10 @@ import com.google.appengine.api.datastore.DatastoreServiceFactory;
 import com.google.appengine.api.datastore.Entity;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.Text;
-import org.json.JSONException;
-import org.json.JSONObject;
 import com.google.appengine.tools.mapreduce.AppEngineMapper;
+
+import external.JSON.JSONException;
+import external.JSON.JSONObject;
 
 import org.apache.hadoop.io.NullWritable;
 
@@ -27,7 +28,7 @@ public class PurgeMapper extends AppEngineMapper<Key, Entity, NullWritable, Null
           }          
       } catch (Exception e) {
           context.getCounter("Overall", "Unreadable").increment(1);
-      }      
+      }
   }
   
   public static boolean shouldPurge(JSONObject theMatch) throws JSONException {

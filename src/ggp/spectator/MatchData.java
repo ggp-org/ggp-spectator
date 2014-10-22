@@ -1,13 +1,8 @@
 package ggp.spectator;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.security.DigestInputStream;
-import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Formatter;
 import java.util.TimeZone;
 
 import javax.jdo.JDOObjectNotFoundException;
@@ -16,10 +11,12 @@ import javax.jdo.annotations.*;
 
 import com.google.appengine.api.datastore.Text;
 
+import external.JSON.JSONArray;
+import external.JSON.JSONException;
+import external.JSON.JSONObject;
+
+import org.ggp.base.util.crypto.BaseHashing;
 import org.ggp.galaxy.shared.persistence.Persistence;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 @PersistenceCapable
 public class MatchData {
@@ -157,38 +154,16 @@ public class MatchData {
 
     private static String computeKeyAttempt(JSONObject theJSON, int nKeyAttempt) {
         try {
-            String theKey = computeHash(theJSON.getString("matchId"));
+            String theKey = BaseHashing.computeSHA1Hash(theJSON.getString("matchId"));
             theKey += "." + theJSON.getLong("startTime");
-            theKey += "." + computeHash(theJSON.getString("randomToken"));
+            theKey += "." + BaseHashing.computeSHA1Hash(theJSON.getString("randomToken"));
             if (theJSON.has("matchHostPK")) {
-                theKey += "." + computeHash(theJSON.getString("matchHostPK"));
+                theKey += "." + BaseHashing.computeSHA1Hash(theJSON.getString("matchHostPK"));
             }
             theKey += "-" + nKeyAttempt;
-            return computeHash(theKey);
+            return BaseHashing.computeSHA1Hash(theKey);
         } catch(JSONException e) {
             return "";
-        }
-    }
-
-    // Computes the SHA1 hash of a given input string, and represents
-    // that hash as a hexadecimal string.
-    private static String computeHash(String theData) {
-        try {
-            MessageDigest SHA1 = MessageDigest.getInstance("SHA1");
-    
-            DigestInputStream theDigestStream = new DigestInputStream(
-                    new BufferedInputStream(new ByteArrayInputStream(
-                            theData.getBytes("UTF-8"))), SHA1);
-            while (theDigestStream.read() != -1);
-            byte[] theHash = SHA1.digest();
-    
-            Formatter hexFormat = new Formatter();
-            for (byte x : theHash) {
-                hexFormat.format("%02x", x);
-            }
-            return hexFormat.toString();
-        } catch (Exception e) {
-            return null;
         }
     }
 }
