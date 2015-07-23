@@ -120,6 +120,9 @@ public class MatchValidation {
             int movesLength = theMatchJSON.getJSONArray("moves").length();
             int statesLength = theMatchJSON.getJSONArray("states").length();
             int stateTimesLength = theMatchJSON.getJSONArray("stateTimes").length();
+            if (statesLength < 1) {
+            	throw new ValidationException("The initial state must be present before a match is published, but here it isn't.");
+            }            
             if (statesLength != stateTimesLength) {
                 throw new ValidationException("There are " + statesLength + " states, but " + stateTimesLength + " state times. Inconsistent!");
             }
